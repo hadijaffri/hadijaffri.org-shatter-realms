@@ -14,7 +14,7 @@ interface Player {
 }
 
 interface GameState {
-    players: Map<string, Player>;
+    players: Record<string, Player>;
     matchStartTime: number;
     matchDuration: number; // 5 minutes in ms
     matchEnded: boolean;
@@ -25,7 +25,7 @@ export default class GameServer implements Party.Server {
     constructor(readonly room: Party.Room) {}
 
     state: GameState = {
-        players: new Map(),
+        players: {},
         matchStartTime: 0,
         matchDuration: 5 * 60 * 1000, // 5 minutes
         matchEnded: false,
@@ -34,37 +34,50 @@ export default class GameServer implements Party.Server {
 
     lastTimerUpdate: number = 0;
 
+    async onStart() {
+        // Load state from storage
+        const savedState = await this.room.storage.get<GameState>("gameState");
+        if (savedState) {
+            this.state = savedState;
+        }
+    }
+
+    async saveState() {
+        await this.room.storage.put("gameState", this.state);
+    }
+
     onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
         // Player connected, wait for join message with player data
         console.log(`Player connected: ${conn.id}`);
     }
 
-    onClose(conn: Party.Connection) {
+    async onClose(conn: Party.Connection) {
         // Remove player from state
-        const player = this.state.players.get(conn.id);
+        const player = this.state.players[conn.id];
         if (player) {
-            this.state.players.delete(conn.id);
+            delete this.state.players[conn.id];
             // Broadcast player left
             this.room.broadcast(JSON.stringify({
                 type: "player_left",
                 playerId: conn.id,
                 playerName: player.name
             }));
+            await this.saveState();
         }
 
         // If no players left, reset match
-        if (this.state.players.size === 0) {
-            this.resetMatch();
+        if (Object.keys(this.state.players).length === 0) {
+            await this.resetMatch();
         }
     }
 
-    onMessage(message: string, sender: Party.Connection) {
+    async onMessage(message: string, sender: Party.Connection) {
         try {
             const data = JSON.parse(message);
 
             switch (data.type) {
                 case "join":
-                    this.handleJoin(sender, data);
+                    await this.handleJoin(sender, data);
                     break;
                 case "position":
                     this.handlePosition(sender, data);
@@ -73,10 +86,10 @@ export default class GameServer implements Party.Server {
                     this.handleAttack(sender, data);
                     break;
                 case "damage":
-                    this.handleDamage(sender, data);
+                    await this.handleDamage(sender, data);
                     break;
                 case "respawn":
-                    this.handleRespawn(sender);
+                    await this.handleRespawn(sender);
                     break;
             }
         } catch (e) {
@@ -84,7 +97,7 @@ export default class GameServer implements Party.Server {
         }
     }
 
-    handleJoin(conn: Party.Connection, data: any) {
+    async handleJoin(conn: Party.Connection, data: any) {
         const player: Player = {
             id: conn.id,
             name: data.name || `Player_${conn.id.slice(0, 4)}`,
@@ -98,15 +111,16 @@ export default class GameServer implements Party.Server {
             lastUpdate: Date.now()
         };
 
-        this.state.players.set(conn.id, player);
+        this.state.players[conn.id] = player;
+        await this.saveState();
 
         // Start match if first player or match ended
         if (this.state.matchEnded || this.state.matchStartTime === 0) {
-            this.startMatch();
+            await this.startMatch();
         }
 
         // Send current game state to joining player
-        const playersArray = Array.from(this.state.players.values());
+        const playersArray = Object.values(this.state.players);
         conn.send(JSON.stringify({
             type: "game_state",
             playerId: conn.id,
@@ -124,7 +138,7 @@ export default class GameServer implements Party.Server {
     }
 
     handlePosition(conn: Party.Connection, data: any) {
-        const player = this.state.players.get(conn.id);
+        const player = this.state.players[conn.id];
         if (player) {
             player.position = data.position;
             player.rotation = data.rotation;
@@ -154,9 +168,9 @@ export default class GameServer implements Party.Server {
         }), [conn.id]);
     }
 
-    handleDamage(conn: Party.Connection, data: any) {
-        const target = this.state.players.get(data.targetId);
-        const attacker = this.state.players.get(conn.id);
+    async handleDamage(conn: Party.Connection, data: any) {
+        const target = this.state.players[data.targetId];
+        const attacker = this.state.players[conn.id];
 
         if (target && attacker && !this.state.matchEnded) {
             target.health -= data.damage;
@@ -186,11 +200,12 @@ export default class GameServer implements Party.Server {
                     killerKills: attacker.kills
                 }));
             }
+            await this.saveState();
         }
     }
 
-    handleRespawn(conn: Party.Connection) {
-        const player = this.state.players.get(conn.id);
+    async handleRespawn(conn: Party.Connection) {
+        const player = this.state.players[conn.id];
         if (player) {
             player.health = player.maxHealth;
             player.position = {
@@ -206,16 +221,17 @@ export default class GameServer implements Party.Server {
                 position: player.position,
                 health: player.health
             }));
+            await this.saveState();
         }
     }
 
-    startMatch() {
+    async startMatch() {
         this.state.matchStartTime = Date.now();
         this.state.matchEnded = false;
         this.state.winner = null;
 
         // Reset all player stats
-        this.state.players.forEach(player => {
+        Object.values(this.state.players).forEach(player => {
             player.kills = 0;
             player.deaths = 0;
             player.health = player.maxHealth;
@@ -223,7 +239,8 @@ export default class GameServer implements Party.Server {
 
         // Start timer using alarm
         this.lastTimerUpdate = Date.now();
-        this.room.storage.setAlarm(Date.now() + 1000);
+        await this.room.storage.setAlarm(Date.now() + 1000);
+        await this.saveState();
 
         // Broadcast match start
         this.room.broadcast(JSON.stringify({
@@ -247,10 +264,10 @@ export default class GameServer implements Party.Server {
 
         // Check for match end
         if (timeRemaining <= 0) {
-            this.endMatch();
+            await this.endMatch();
         } else {
             // Schedule next alarm in 1 second
-            this.room.storage.setAlarm(Date.now() + 1000);
+            await this.room.storage.setAlarm(Date.now() + 1000);
         }
     }
 
@@ -266,26 +283,30 @@ export default class GameServer implements Party.Server {
         }));
     }
 
-    endMatch() {
+    async endMatch() {
         if (this.state.matchEnded) return;
 
         this.state.matchEnded = true;
+
+        // Delete the alarm to stop the timer
+        await this.room.storage.deleteAlarm();
 
         // Find winner (most kills)
         let winner: Player | null = null;
         let maxKills = -1;
 
-        this.state.players.forEach(player => {
+        const players = Object.values(this.state.players);
+        for (const player of players) {
             if (player.kills > maxKills) {
                 maxKills = player.kills;
                 winner = player;
             }
-        });
+        }
 
         this.state.winner = winner?.id || null;
 
         // Create scoreboard
-        const scoreboard = Array.from(this.state.players.values())
+        const scoreboard = Object.values(this.state.players)
             .map(p => ({
                 id: p.id,
                 name: p.name,
@@ -293,6 +314,8 @@ export default class GameServer implements Party.Server {
                 deaths: p.deaths
             }))
             .sort((a, b) => b.kills - a.kills);
+
+        await this.saveState();
 
         // Broadcast match end
         this.room.broadcast(JSON.stringify({
@@ -305,14 +328,18 @@ export default class GameServer implements Party.Server {
         }));
     }
 
-    resetMatch() {
+    async resetMatch() {
+        // Delete the alarm to stop any running timer
+        await this.room.storage.deleteAlarm();
+
         this.state = {
-            players: new Map(),
+            players: {},
             matchStartTime: 0,
             matchDuration: 5 * 60 * 1000,
             matchEnded: false,
             winner: null
         };
         this.lastTimerUpdate = 0;
+        await this.saveState();
     }
 }

@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.0.10",
-    "partykit": "^0.0.108",
+    "partykit": "^0.0.115",
     "typescript": "^5.9.3"
   }
 }

@@ -3,6 +3,13 @@
     { "source": "/api/save", "destination": "/api/save" },
     { "source": "/", "destination": "/index.html" }
   ],
+  "redirects": [
+    {
+      "source": "/shatterrealms_v5.html",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

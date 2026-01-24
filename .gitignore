@@ -26,3 +26,6 @@ poetry.lock
 # Environment
 .env
 .env.local
+
+.vercel
+.env*.local

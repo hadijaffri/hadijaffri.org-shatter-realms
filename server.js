@@ -63,6 +63,68 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    if (req.url === '/api/create-checkout-session' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+            try {
+                const { coinPackage } = JSON.parse(body);
+
+                // Define coin packages
+                const packages = {
+                    small: { coins: 500, price: 499, name: 'Small Coin Pack' },
+                    medium: { coins: 1200, price: 999, name: 'Medium Coin Pack' },
+                    large: { coins: 2500, price: 1999, name: 'Large Coin Pack' },
+                    mega: { coins: 6000, price: 4999, name: 'Mega Coin Pack' }
+                };
+
+                const pack = packages[coinPackage];
+                if (!pack) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Invalid package' }));
+                    return;
+                }
+
+                const session = await stripe.checkout.sessions.create({
+                    payment_method_types: ['card'],
+                    line_items: [{
+                        price_data: {
+                            currency: 'usd',
+                            product_data: {
+                                name: pack.name,
+                                description: `${pack.coins} coins for ShatterRealms`,
+                            },
+                            unit_amount: pack.price,
+                        },
+                        quantity: 1,
+                    }],
+                    mode: 'payment',
+                    success_url: `http://localhost:${PORT}/shatterrealms_v5.html?success=true&coins=${pack.coins}`,
+                    cancel_url: `http://localhost:${PORT}/shatterrealms_v5.html?canceled=true`,
+                    metadata: {
+                        coins: pack.coins
+                    }
+                });
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ url: session.url }));
+            } catch (error) {
+                console.error('Stripe error:', error);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: error.message }));
+            }
+        });
+        return;
+    }
+
+    if (req.url === '/api/stripe-config' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+        }));
+        return;
+    }
+
     // Serve static files
     let filePath = req.url === '/' ? '/shatterrealms_v5.html' : req.url;
     filePath = path.join(__dirname, filePath);

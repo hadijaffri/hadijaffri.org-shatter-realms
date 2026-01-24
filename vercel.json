@@ -1,6 +1,8 @@
 {
   "rewrites": [
     { "source": "/api/save", "destination": "/api/save" },
+    { "source": "/api/create-checkout-session", "destination": "/api/create-checkout-session" },
+    { "source": "/api/stripe-config", "destination": "/api/stripe-config" },
     { "source": "/", "destination": "/index.html" }
   ],
   "redirects": [

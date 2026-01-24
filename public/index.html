@@ -333,6 +333,70 @@
         }
         
         .shop-buy-btn:disabled { background: #444; cursor: not-allowed; }
+
+        .coin-packages {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .coin-packages-title {
+            color: gold;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .coin-package {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .coin-package:hover {
+            transform: scale(1.02);
+            border-color: gold;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .coin-package-info {
+            flex: 1;
+        }
+
+        .coin-package-name {
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .coin-package-coins {
+            color: gold;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .coin-package-price {
+            color: #2ecc71;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .shop-divider {
+            margin: 20px 0;
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            font-weight: bold;
+        }
         
         #settingsPanel { border-color: #27ae60; }
         #settingsPanel .panel-header h2 { color: #2ecc71; }
@@ -2713,12 +2777,55 @@
         function updateShopUI() {
             const el = document.getElementById('shopItems');
             el.innerHTML = '';
-            
+
+            // Add coin packages section
+            const coinPackagesDiv = document.createElement('div');
+            coinPackagesDiv.className = 'coin-packages';
+            coinPackagesDiv.innerHTML = `
+                <div class="coin-packages-title">💰 BUY COINS 💰</div>
+                <div class="coin-package" onclick="buyCoins('small')">
+                    <div class="coin-package-info">
+                        <div class="coin-package-name">Small Pack</div>
+                        <div class="coin-package-coins">💰 500 Coins</div>
+                    </div>
+                    <div class="coin-package-price">$4.99</div>
+                </div>
+                <div class="coin-package" onclick="buyCoins('medium')">
+                    <div class="coin-package-info">
+                        <div class="coin-package-name">Medium Pack</div>
+                        <div class="coin-package-coins">💰 1,200 Coins</div>
+                    </div>
+                    <div class="coin-package-price">$9.99</div>
+                </div>
+                <div class="coin-package" onclick="buyCoins('large')">
+                    <div class="coin-package-info">
+                        <div class="coin-package-name">Large Pack</div>
+                        <div class="coin-package-coins">💰 2,500 Coins</div>
+                    </div>
+                    <div class="coin-package-price">$19.99</div>
+                </div>
+                <div class="coin-package" onclick="buyCoins('mega')">
+                    <div class="coin-package-info">
+                        <div class="coin-package-name">Mega Pack</div>
+                        <div class="coin-package-coins">💰 6,000 Coins</div>
+                    </div>
+                    <div class="coin-package-price">$49.99</div>
+                </div>
+            `;
+            el.appendChild(coinPackagesDiv);
+
+            // Add divider
+            const divider = document.createElement('div');
+            divider.className = 'shop-divider';
+            divider.textContent = '⚔️ WEAPONS & ITEMS ⚔️';
+            el.appendChild(divider);
+
+            // Add shop items
             shopItems.forEach(si => {
                 const item = itemDefs[si.id];
                 const owned = inventory.ownedItems.includes(si.id);
                 const canAfford = inventory.coins >= si.price;
-                
+
                 const div = document.createElement('div');
                 div.className = 'shop-item';
                 div.innerHTML = `
@@ -2732,7 +2839,7 @@
                 `;
                 el.appendChild(div);
             });
-            
+
             document.getElementById('menuCoins').textContent = '💰 ' + inventory.coins;
         }
         
@@ -2747,7 +2854,49 @@
                 saveCoinsToCloud(); // Save to cloud after purchase
             }
         }
-        
+
+        async function buyCoins(coinPackage) {
+            try {
+                const response = await fetch('/api/create-checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ coinPackage })
+                });
+
+                const data = await response.json();
+
+                if (data.url) {
+                    // Redirect to Stripe Checkout
+                    window.location.href = data.url;
+                } else {
+                    alert('Error creating checkout session');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error connecting to payment service');
+            }
+        }
+
+        // Check if user just completed a payment
+        function checkPaymentSuccess() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success') === 'true') {
+                const coinsToAdd = parseInt(urlParams.get('coins'));
+                if (coinsToAdd) {
+                    inventory.coins += coinsToAdd;
+                    saveCoinsToCloud();
+                    alert(`Payment successful! ${coinsToAdd} coins have been added to your account!`);
+                    // Clean up URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            } else if (urlParams.get('canceled') === 'true') {
+                alert('Payment was canceled');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
         function openSettings() { document.getElementById('settingsPanel').style.display = 'flex'; }
         function closeSettings() { document.getElementById('settingsPanel').style.display = 'none'; }
         function quitGame() { location.reload(); }
@@ -5199,6 +5348,7 @@
         });
         
         init();
+        checkPaymentSuccess();
         gameLoop(0);
     </script>
 </body>

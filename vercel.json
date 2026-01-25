@@ -3,6 +3,8 @@
     { "source": "/api/save", "destination": "/api/save" },
     { "source": "/api/create-checkout-session", "destination": "/api/create-checkout-session" },
     { "source": "/api/stripe-config", "destination": "/api/stripe-config" },
+    { "source": "/api/ai-coin-pricing", "destination": "/api/ai-coin-pricing" },
+    { "source": "/api/generate-weapon", "destination": "/api/generate-weapon" },
     { "source": "/", "destination": "/index.html" }
   ],
   "redirects": [

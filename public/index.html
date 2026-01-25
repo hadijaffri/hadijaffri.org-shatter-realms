@@ -766,6 +766,7 @@
             <button class="menu-btn" onclick="startGame()">⚔️ Solo Play</button>
             <button class="menu-btn" onclick="joinMultiplayer()" style="background: linear-gradient(135deg, #4a0080, #800080);">👥 Multiplayer</button>
             <button class="menu-btn shop-btn" onclick="openShop()">🛒 Shop</button>
+            <button class="menu-btn" onclick="openInventory()" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">📦 Inventory</button>
             <button class="menu-btn settings-btn" onclick="openSettings()">⚙️ Settings</button>
             <button class="menu-btn quit-btn" onclick="quitGame()">🚪 Quit</button>
             <div id="menuCoins" style="color: gold; margin-top: 12px; font-size: 16px;">💰 0 <button id="menuAddCoins" onclick="openCustomCoinModal()" style="background: gold; color: #000; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 16px; font-weight: bold; cursor: pointer; margin-left: 5px;">+</button></div>
@@ -866,8 +867,56 @@
         <button class="menu-btn" onclick="leaveMultiplayer()">Return to Menu</button>
     </div>
 
+    <!-- AI Coin Purchase Modal -->
+    <div id="customCoinModal">
+        <div class="modal-content">
+            <h3>Buy Coins with AI Pricing</h3>
+            <p style="color: #aaa; font-size: 12px; margin-bottom: 15px;">Enter how many coins you want. Our AI will calculate the best price for you!</p>
+            <input type="number" id="coinAmount" placeholder="Enter coins (50-50,000)" min="50" max="50000" value="500">
+            <div id="priceDisplay">Calculating...</div>
+            <div id="aiReasoning" style="color: #888; font-size: 11px; margin-bottom: 10px;"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn buy" id="buyCoinsBtn" onclick="purchaseAICoins()">Buy Now</button>
+                <button class="modal-btn cancel" onclick="closeCustomCoinModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Management Panel -->
+    <div id="inventoryPanel" class="panel" style="display: none; max-width: 600px;">
+        <div class="panel-header">
+            <h2>Inventory & Loadout</h2>
+            <button class="close-btn" onclick="closeInventory()">x</button>
+        </div>
+        <div class="panel-content">
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: gold; margin-bottom: 10px;">Equipped Hotbar</h3>
+                <div id="hotbarConfig" style="display: flex; gap: 5px; justify-content: center;"></div>
+                <p style="color: #888; font-size: 10px; margin-top: 5px;">Drag weapons here or click to equip</p>
+            </div>
+            <div>
+                <h3 style="color: #0f0; margin-bottom: 10px;">Your Weapons</h3>
+                <div id="inventoryGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;"></div>
+            </div>
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="menu-btn" onclick="generateNewWeapon()" id="generateWeaponBtn" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                    Generate New Weapon (AI)
+                </button>
+                <p style="color: #888; font-size: 10px; margin-top: 5px;">Uses AI to create a unique weapon!</p>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/partysocket@0.0.25/dist/index.global.js"></script>
+    <!-- Post-processing for hyper-realistic graphics -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
     <script>
         // Cookie helpers for persistent data
         function setCookie(name, value, days = 365) {
@@ -907,6 +956,98 @@
         let swordMesh = null;
         let swordSwinging = false;
         let swordSwingTime = 0;
+
+        // Post-processing composer for hyper-realistic graphics
+        let composer = null;
+        let bloomPass = null;
+        let fxaaPass = null;
+
+        function setupPostProcessing() {
+            if (typeof THREE.EffectComposer === 'undefined') {
+                console.warn('Post-processing not available');
+                return;
+            }
+
+            composer = new THREE.EffectComposer(renderer);
+
+            // Base render pass
+            const renderPass = new THREE.RenderPass(scene, camera);
+            composer.addPass(renderPass);
+
+            // Bloom for glowing effects (subtle for realism)
+            bloomPass = new THREE.UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                0.3,  // Strength - subtle
+                0.4,  // Radius
+                0.85  // Threshold - only bright things bloom
+            );
+            composer.addPass(bloomPass);
+
+            // FXAA anti-aliasing
+            if (typeof THREE.FXAAShader !== 'undefined') {
+                fxaaPass = new THREE.ShaderPass(THREE.FXAAShader);
+                fxaaPass.material.uniforms['resolution'].value.x = 1 / (window.innerWidth * renderer.getPixelRatio());
+                fxaaPass.material.uniforms['resolution'].value.y = 1 / (window.innerHeight * renderer.getPixelRatio());
+                composer.addPass(fxaaPass);
+            }
+
+            // Color correction pass for cinematic look
+            const colorCorrectionShader = {
+                uniforms: {
+                    'tDiffuse': { value: null },
+                    'saturation': { value: 1.15 },
+                    'contrast': { value: 1.1 },
+                    'brightness': { value: 0.02 },
+                    'vignetteIntensity': { value: 0.3 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform sampler2D tDiffuse;
+                    uniform float saturation;
+                    uniform float contrast;
+                    uniform float brightness;
+                    uniform float vignetteIntensity;
+                    varying vec2 vUv;
+
+                    vec3 adjustSaturation(vec3 color, float sat) {
+                        float grey = dot(color, vec3(0.2126, 0.7152, 0.0722));
+                        return mix(vec3(grey), color, sat);
+                    }
+
+                    void main() {
+                        vec4 color = texture2D(tDiffuse, vUv);
+
+                        // Saturation
+                        color.rgb = adjustSaturation(color.rgb, saturation);
+
+                        // Contrast and brightness
+                        color.rgb = (color.rgb - 0.5) * contrast + 0.5 + brightness;
+
+                        // Vignette
+                        vec2 center = vUv - 0.5;
+                        float dist = length(center);
+                        float vignette = 1.0 - smoothstep(0.3, 0.9, dist) * vignetteIntensity;
+                        color.rgb *= vignette;
+
+                        // Subtle film grain
+                        float grain = (fract(sin(dot(vUv * 1000.0, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.02;
+                        color.rgb += grain;
+
+                        gl_FragColor = color;
+                    }
+                `
+            };
+
+            const colorPass = new THREE.ShaderPass(colorCorrectionShader);
+            colorPass.renderToScreen = true;
+            composer.addPass(colorPass);
+        }
 
         // Particle system
         let particles = [];
@@ -1487,14 +1628,19 @@
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
             camera.position.copy(playerState.position);
             
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.2;
+            renderer.toneMappingExposure = 1.4;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.physicallyCorrectLights = true;
             document.body.appendChild(renderer.domElement);
+
+            // Hyper-realistic post-processing
+            setupPostProcessing();
             
             // Realistic lighting
             const ambientLight = new THREE.AmbientLight(0x8899aa, 0.4);
@@ -2835,6 +2981,236 @@
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
+
+        // ========== AI COIN PRICING ==========
+        let currentAIPrice = null;
+        let priceDebounceTimer = null;
+
+        function openCustomCoinModal() {
+            document.getElementById('customCoinModal').style.display = 'flex';
+            document.getElementById('coinAmount').value = 500;
+            calculateAIPrice(500);
+        }
+
+        function closeCustomCoinModal() {
+            document.getElementById('customCoinModal').style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const coinInput = document.getElementById('coinAmount');
+            if (coinInput) {
+                coinInput.addEventListener('input', (e) => {
+                    clearTimeout(priceDebounceTimer);
+                    priceDebounceTimer = setTimeout(() => {
+                        const coins = parseInt(e.target.value) || 0;
+                        if (coins >= 50 && coins <= 50000) {
+                            calculateAIPrice(coins);
+                        } else {
+                            document.getElementById('priceDisplay').textContent = 'Enter 50-50,000 coins';
+                            document.getElementById('priceDisplay').style.color = '#ff6600';
+                            document.getElementById('aiReasoning').textContent = '';
+                        }
+                    }, 300);
+                });
+            }
+        });
+
+        async function calculateAIPrice(coins) {
+            document.getElementById('priceDisplay').textContent = 'AI is calculating...';
+            document.getElementById('priceDisplay').style.color = '#ffff00';
+            document.getElementById('aiReasoning').textContent = '';
+            document.getElementById('buyCoinsBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/ai-coin-pricing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ coins })
+                });
+
+                const data = await response.json();
+                if (data.price) {
+                    currentAIPrice = data;
+                    document.getElementById('priceDisplay').textContent = `$${data.price.toFixed(2)} for ${coins} coins`;
+                    document.getElementById('priceDisplay').style.color = '#00ff00';
+                    document.getElementById('aiReasoning').textContent = data.reasoning || '';
+                    document.getElementById('buyCoinsBtn').disabled = false;
+                } else {
+                    document.getElementById('priceDisplay').textContent = 'Error calculating price';
+                    document.getElementById('priceDisplay').style.color = '#ff0000';
+                }
+            } catch (error) {
+                console.error('AI pricing error:', error);
+                document.getElementById('priceDisplay').textContent = 'Connection error';
+                document.getElementById('priceDisplay').style.color = '#ff0000';
+            }
+        }
+
+        async function purchaseAICoins() {
+            if (!currentAIPrice || !currentAIPrice.url) {
+                alert('Please wait for price calculation');
+                return;
+            }
+            window.location.href = currentAIPrice.url;
+        }
+
+        // ========== INVENTORY MANAGEMENT ==========
+        let generatedWeapons = JSON.parse(localStorage.getItem('generatedWeapons') || '[]');
+
+        function openInventory() {
+            document.getElementById('inventoryPanel').style.display = 'flex';
+            renderInventory();
+        }
+
+        function closeInventory() {
+            document.getElementById('inventoryPanel').style.display = 'none';
+        }
+
+        function renderInventory() {
+            // Render hotbar config
+            const hotbarConfig = document.getElementById('hotbarConfig');
+            hotbarConfig.innerHTML = '';
+            for (let i = 0; i < 6; i++) {
+                const itemId = hotbar[i];
+                const item = itemId ? (itemDefs[itemId] || generatedWeapons.find(w => w.id === itemId)) : null;
+                const slot = document.createElement('div');
+                slot.className = 'hotbar-slot' + (i === selectedSlot ? ' selected' : '');
+                slot.style.cssText = 'width: 60px; height: 60px; cursor: pointer;';
+                slot.innerHTML = item ? `
+                    <span class="item-icon">${item.icon}</span>
+                    <span class="item-name">${item.name}</span>
+                ` : `<span style="color: #444;">Empty</span>`;
+                slot.onclick = () => {
+                    if (item) {
+                        hotbar[i] = null;
+                        renderInventory();
+                        setupHotbar();
+                    }
+                };
+                slot.ondragover = (e) => e.preventDefault();
+                slot.ondrop = (e) => {
+                    e.preventDefault();
+                    const weaponId = e.dataTransfer.getData('weaponId');
+                    if (weaponId) {
+                        // Remove from old slot if exists
+                        const oldSlot = hotbar.indexOf(weaponId);
+                        if (oldSlot !== -1) hotbar[oldSlot] = null;
+                        hotbar[i] = weaponId;
+                        renderInventory();
+                        setupHotbar();
+                    }
+                };
+                hotbarConfig.appendChild(slot);
+            }
+
+            // Render all owned weapons
+            const grid = document.getElementById('inventoryGrid');
+            grid.innerHTML = '';
+
+            const allWeapons = [...inventory.ownedItems, ...generatedWeapons.map(w => w.id)];
+            const uniqueWeapons = [...new Set(allWeapons)];
+
+            uniqueWeapons.forEach(weaponId => {
+                const item = itemDefs[weaponId] || generatedWeapons.find(w => w.id === weaponId);
+                if (!item) return;
+
+                const equipped = hotbar.includes(weaponId);
+                const div = document.createElement('div');
+                div.draggable = true;
+                div.style.cssText = `
+                    background: ${equipped ? 'rgba(0,255,0,0.2)' : 'rgba(255,255,255,0.05)'};
+                    border: 2px solid ${equipped ? '#0f0' : '#444'};
+                    border-radius: 8px;
+                    padding: 10px;
+                    text-align: center;
+                    cursor: grab;
+                `;
+                div.innerHTML = `
+                    <div style="font-size: 24px;">${item.icon}</div>
+                    <div style="color: white; font-size: 10px;">${item.name}</div>
+                    <div style="color: #888; font-size: 8px;">DMG: ${item.damage || 0}</div>
+                    ${item.rarity ? `<div style="color: ${getRarityColor(item.rarity)}; font-size: 8px;">${item.rarity}</div>` : ''}
+                `;
+                div.ondragstart = (e) => {
+                    e.dataTransfer.setData('weaponId', weaponId);
+                };
+                div.onclick = () => {
+                    const emptySlot = hotbar.findIndex(s => s === null);
+                    if (emptySlot !== -1 && !equipped) {
+                        hotbar[emptySlot] = weaponId;
+                        renderInventory();
+                        setupHotbar();
+                    }
+                };
+                grid.appendChild(div);
+            });
+
+            // Update generate button if all base weapons owned
+            const baseWeaponCount = Object.keys(itemDefs).length;
+            const ownedCount = inventory.ownedItems.length;
+            const btn = document.getElementById('generateWeaponBtn');
+            if (ownedCount >= baseWeaponCount * 0.8) {
+                btn.style.display = 'block';
+            }
+        }
+
+        function getRarityColor(rarity) {
+            const colors = {
+                common: '#aaa',
+                uncommon: '#0f0',
+                rare: '#00f',
+                epic: '#a0f',
+                legendary: '#ff0'
+            };
+            return colors[rarity] || '#fff';
+        }
+
+        async function generateNewWeapon() {
+            const btn = document.getElementById('generateWeaponBtn');
+            btn.textContent = 'Generating...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/generate-weapon', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ownedWeapons: [...inventory.ownedItems, ...generatedWeapons.map(w => w.id)],
+                        playerLevel: currentWave,
+                        preferredType: null
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success && data.weapon) {
+                    // Add to generated weapons
+                    generatedWeapons.push(data.weapon);
+                    localStorage.setItem('generatedWeapons', JSON.stringify(generatedWeapons));
+
+                    // Add to itemDefs so it works in game
+                    itemDefs[data.weapon.id] = data.weapon;
+
+                    // Add to owned items
+                    inventory.ownedItems.push(data.weapon.id);
+
+                    alert(`New weapon generated: ${data.weapon.name} (${data.weapon.rarity})\n${data.weapon.desc}`);
+                    renderInventory();
+                } else {
+                    alert('Failed to generate weapon');
+                }
+            } catch (error) {
+                console.error('Weapon generation error:', error);
+                alert('Error connecting to AI');
+            }
+
+            btn.textContent = 'Generate New Weapon (AI)';
+            btn.disabled = false;
+        }
+
+        // Load generated weapons into itemDefs on startup
+        generatedWeapons.forEach(w => {
+            if (w && w.id) itemDefs[w.id] = w;
+        });
 
         function openSettings() { generateSettingsUI(); document.getElementById('settingsPanel').style.display = 'flex'; }
         function closeSettings() { document.getElementById('settingsPanel').style.display = 'none'; }
@@ -4571,7 +4947,7 @@
             lastTime = timestamp;
 
             if (!gameRunning) {
-                renderer.render(scene, camera);
+                renderScene();
                 return;
             }
 
@@ -4600,7 +4976,15 @@
                 saveCoinsToCloud();
             }
 
-            renderer.render(scene, camera);
+            renderScene();
+        }
+
+        function renderScene() {
+            if (composer && settings.hyperRealisticGraphics !== false) {
+                composer.render();
+            } else {
+                renderer.render(scene, camera);
+            }
         }
 
         // ========== MULTIPLAYER FUNCTIONS ==========
@@ -5206,6 +5590,15 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // Update post-processing on resize
+            if (composer) {
+                composer.setSize(window.innerWidth, window.innerHeight);
+            }
+            if (fxaaPass) {
+                fxaaPass.material.uniforms['resolution'].value.x = 1 / (window.innerWidth * renderer.getPixelRatio());
+                fxaaPass.material.uniforms['resolution'].value.y = 1 / (window.innerHeight * renderer.getPixelRatio());
+            }
         });
         
         init();

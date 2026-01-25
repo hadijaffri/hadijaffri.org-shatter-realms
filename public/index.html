@@ -595,227 +595,6 @@
         .mobile-mode #hud { bottom: 150px; left: 8px; }
         .mobile-mode .bar-container { width: 140px; height: 16px; }
         .mobile-mode #hotbar { bottom: 75px; transform: translateX(-50%) scale(0.8); }
-
-        /* Multiplayer UI */
-        #modeSelect {
-            display: none;
-            text-align: center;
-        }
-
-        #modeSelect p {
-            color: #aaa;
-            margin-bottom: 15px;
-        }
-
-        .mode-btn {
-            padding: 15px 40px;
-            font-size: 16px;
-            background: linear-gradient(135deg, #4a00e0, #8e2de2);
-            border: none;
-            border-radius: 20px;
-            color: white;
-            cursor: pointer;
-            margin: 8px;
-            transition: all 0.3s;
-        }
-
-        .mode-btn:hover { transform: scale(1.05); }
-        .mode-btn.multiplayer { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-
-        #matchTimer {
-            position: fixed;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #ff4444;
-            border-radius: 15px;
-            padding: 8px 20px;
-            color: #ff4444;
-            font-size: 24px;
-            font-weight: bold;
-            z-index: 100;
-            display: none;
-        }
-
-        #scoreboard {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            border: 3px solid #8e2de2;
-            border-radius: 15px;
-            padding: 20px;
-            z-index: 500;
-            display: none;
-            min-width: 350px;
-        }
-
-        #scoreboard h2 {
-            color: gold;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .scoreboard-header {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 15px;
-            color: #888;
-            font-size: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .scoreboard-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 15px;
-            color: white;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .scoreboard-row.me {
-            background: rgba(142, 45, 226, 0.3);
-        }
-
-        .scoreboard-row.winner {
-            background: rgba(255, 215, 0, 0.2);
-            color: gold;
-        }
-
-        .player-name { flex: 2; }
-        .player-kills, .player-deaths { flex: 1; text-align: center; }
-
-        #lobbyScreen {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a1a2a 100%);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        #lobbyScreen h2 {
-            color: #fff;
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
-
-        #lobbyPlayers {
-            background: rgba(0,0,0,0.5);
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 10px;
-            padding: 15px;
-            min-width: 300px;
-            margin-bottom: 20px;
-        }
-
-        .lobby-player {
-            color: white;
-            padding: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        #lobbyStatus {
-            color: #88ccff;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-
-        #matchEndScreen {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        #matchEndScreen h1 {
-            font-size: 42px;
-            color: gold;
-            margin-bottom: 10px;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-        }
-
-        #matchEndScreen .winner-name {
-            font-size: 24px;
-            color: #fff;
-            margin-bottom: 20px;
-        }
-
-        #matchEndScreen .reward {
-            font-size: 18px;
-            color: gold;
-            margin-bottom: 20px;
-        }
-
-        .other-player-nameplate {
-            position: absolute;
-            color: white;
-            font-size: 12px;
-            text-align: center;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
-            pointer-events: none;
-        }
-
-        .other-player-healthbar {
-            width: 60px;
-            height: 6px;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 3px;
-            margin: 3px auto;
-            overflow: hidden;
-        }
-
-        .other-player-healthbar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #8b0000, #ff3333);
-            transition: width 0.3s ease;
-        }
-
-        #killFeed {
-            position: fixed;
-            top: 80px;
-            right: 15px;
-            z-index: 100;
-            display: none;
-        }
-
-        .kill-message {
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            margin-bottom: 5px;
-            font-size: 12px;
-            animation: fadeOut 3s forwards;
-        }
-
-        @keyframes fadeOut {
-            0%, 70% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-
-        #respawnTimer {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 48px;
-            color: #ff4444;
-            text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
-            z-index: 200;
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -826,11 +605,6 @@
             <p style="color: #aaa; margin-bottom: 15px;">Select your device:</p>
             <button class="menu-btn" onclick="selectDevice('computer')">🖥️ Computer</button>
             <button class="menu-btn" onclick="selectDevice('mobile')">📱 Mobile</button>
-        </div>
-        <div id="modeSelect">
-            <p>Select Game Mode</p>
-            <button class="mode-btn" onclick="selectMode('singleplayer')">🎮 Singleplayer</button>
-            <button class="mode-btn multiplayer" onclick="selectMode('multiplayer')">⚔️ Multiplayer</button>
         </div>
         <div id="startSection" style="display: none;">
             <button class="menu-btn" onclick="startGame()">⚔️ Play</button>
@@ -907,43 +681,33 @@
         <button class="menu-btn" onclick="restartGame()">⚔️ Retry</button>
         <button class="menu-btn" onclick="backToMenu()">🏠 Menu</button>
     </div>
-
-    <!-- Multiplayer UI -->
-    <div id="matchTimer">5:00</div>
-
-    <div id="scoreboard">
-        <h2>SCOREBOARD</h2>
-        <div class="scoreboard-header">
-            <span class="player-name">Player</span>
-            <span class="player-kills">Kills</span>
-            <span class="player-deaths">Deaths</span>
-        </div>
-        <div id="scoreboardContent"></div>
-    </div>
-
-    <div id="lobbyScreen">
-        <h2>MULTIPLAYER LOBBY</h2>
-        <div id="lobbyPlayers">
-            <div class="lobby-player">Waiting for players...</div>
-        </div>
-        <div id="lobbyStatus">Connecting...</div>
-        <button class="menu-btn" onclick="leaveLobby()">Leave</button>
-    </div>
-
-    <div id="matchEndScreen">
-        <h1>MATCH OVER</h1>
-        <div class="winner-name" id="winnerName">Winner: Player</div>
-        <div class="reward" id="rewardText"></div>
-        <div id="finalScoreboard"></div>
-        <button class="menu-btn" onclick="playAgainMultiplayer()">Play Again</button>
-        <button class="menu-btn quit-btn" onclick="backToMenuFromMultiplayer()">Back to Menu</button>
-    </div>
-
-    <div id="killFeed"></div>
-    <div id="respawnTimer"></div>
-
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        // Cookie helpers for persistent data
+        function setCookie(name, value, days = 365) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/; SameSite=Lax';
+        }
+
+        function getCookie(name) {
+            const value = document.cookie.split('; ').find(row => row.startsWith(name + '='));
+            return value ? decodeURIComponent(value.split('=')[1]) : null;
+        }
+
+        // Generate or retrieve device ID
+        function getDeviceId() {
+            let deviceId = getCookie('deviceId');
+            if (!deviceId) {
+                deviceId = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+                setCookie('deviceId', deviceId);
+            }
+            return deviceId;
+        }
+
+        // Initialize device ID on load
+        const deviceId = getDeviceId();
+
         // Game State
         let scene, camera, renderer, player;
         let gameRunning = false;
@@ -953,7 +717,7 @@
         let colliders = [];
         let buildings = [];
         let boss = null;
-        let deviceMode = 'computer';
+        let deviceMode = getCookie('deviceMode') || 'computer';
         let playerState = null;
         let swordMesh = null;
         let swordSwinging = false;
@@ -1204,94 +968,34 @@
         // Inventory
         const inventory = { coins: 100, ownedItems: ['sword', 'fireball'] };
 
-        // ============ COOKIE PERSISTENCE ============
-        function setCookie(name, value, days = 365) {
-            const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
-            document.cookie = `${name}=${encodeURIComponent(JSON.stringify(value))}; expires=${expires}; path=/; SameSite=Lax`;
-        }
-
-        function getCookie(name) {
-            const cookies = document.cookie.split(';');
-            for (let cookie of cookies) {
-                const [cookieName, cookieValue] = cookie.trim().split('=');
-                if (cookieName === name) {
-                    try {
-                        return JSON.parse(decodeURIComponent(cookieValue));
-                    } catch (e) {
-                        return null;
-                    }
-                }
-            }
-            return null;
-        }
-
-        function loadFromCookies() {
-            const data = getCookie('shatterrealms_data');
-            if (data) {
-                if (data.coins !== undefined) inventory.coins = data.coins;
-                if (data.ownedItems && data.ownedItems.length > 0) {
-                    inventory.ownedItems = data.ownedItems;
-                }
-                console.log('Loaded from cookies:', data);
-                return true;
-            }
-            return false;
-        }
-
-        function saveToCookies() {
-            const data = {
-                coins: inventory.coins,
-                ownedItems: inventory.ownedItems
-            };
-            setCookie('shatterrealms_data', data);
-            console.log('Saved to cookies:', data);
-        }
-
-        // ============ CLOUD + COOKIE SAVE FUNCTIONS ============
+        // Cloud save functions
         async function loadFromCloud() {
-            // First try cookies as immediate fallback
-            loadFromCookies();
-
             try {
                 const response = await fetch('/api/save');
                 const data = await response.json();
-
-                // Merge: prefer cloud data if it has more items or more coins
-                const cloudCoins = data.coins || 0;
-                const cookieCoins = inventory.coins || 0;
-                inventory.coins = Math.max(cloudCoins, cookieCoins);
-
+                inventory.coins = data.coins;
                 if (data.ownedItems && data.ownedItems.length > 0) {
-                    // Merge owned items (union of both)
-                    const merged = new Set([...inventory.ownedItems, ...data.ownedItems]);
-                    inventory.ownedItems = Array.from(merged);
+                    inventory.ownedItems = data.ownedItems;
+                    // Populate hotbar with owned items
+                    hotbar = [null, null, null, null, null, null];
+                    for (let i = 0; i < Math.min(inventory.ownedItems.length, 6); i++) {
+                        hotbar[i] = inventory.ownedItems[i];
+                    }
+                    // Refresh hotbar UI if it exists
+                    if (document.getElementById('hotbar')) {
+                        setupHotbar();
+                    }
                 }
-
-                // Populate hotbar with owned items
-                hotbar = [null, null, null, null, null, null];
-                for (let i = 0; i < Math.min(inventory.ownedItems.length, 6); i++) {
-                    hotbar[i] = inventory.ownedItems[i];
-                }
-                // Refresh hotbar UI if it exists
-                if (document.getElementById('hotbar')) {
-                    setupHotbar();
-                }
-
                 document.getElementById('menuCoins').textContent = '💰 ' + inventory.coins;
                 document.getElementById('coinsDisplay').textContent = '💰 ' + inventory.coins;
-                console.log('Loaded from cloud (merged):', inventory);
-
-                // Sync cookies with merged data
-                saveToCookies();
+                console.log('Loaded from cloud:', inventory);
+                console.log('Hotbar updated:', hotbar);
             } catch (e) {
-                console.log('Could not load from cloud, using cookies/defaults');
+                console.log('Could not load from cloud, using defaults');
             }
         }
 
         async function saveToCloud() {
-            // Always save to cookies first (instant backup)
-            saveToCookies();
-
             try {
                 await fetch('/api/save', {
                     method: 'POST',
@@ -1303,7 +1007,7 @@
                 });
                 console.log('Saved to cloud:', inventory);
             } catch (e) {
-                console.log('Could not save to cloud (saved to cookies)');
+                console.log('Could not save to cloud');
             }
         }
 
@@ -1312,19 +1016,6 @@
 
         // Load save when page loads
         loadFromCloud();
-
-        // ============ GAME MODE & MULTIPLAYER STATE ============
-        let gameMode = 'singleplayer'; // 'singleplayer' or 'multiplayer'
-        let partySocket = null;
-        let myPlayerId = null;
-        let myPlayerName = 'Player_' + Math.random().toString(36).substr(2, 4);
-        let otherPlayers = new Map(); // Map of playerId -> { mesh, nameplate, healthbar, data }
-        let matchTimeRemaining = 300000; // 5 minutes in ms
-        let isInMatch = false;
-        let isDead = false;
-        let respawnCountdown = 0;
-        let pvpStats = { kills: 0, deaths: 0 };
-        const PARTYKIT_HOST = "game.hadijaffri.partykit.dev"; // Update with your PartyKit deployment
 
         // Items
         const itemDefs = {
@@ -2650,7 +2341,56 @@
         function generateSettingsUI() {
             const container = document.getElementById('settingsContent');
             container.innerHTML = '';
-            
+
+            // Device mode setting
+            const deviceCat = document.createElement('div');
+            deviceCat.className = 'settings-category';
+            const deviceTitle = document.createElement('div');
+            deviceTitle.className = 'settings-category-title';
+            deviceTitle.textContent = 'Device';
+            deviceCat.appendChild(deviceTitle);
+
+            const deviceRow = document.createElement('div');
+            deviceRow.className = 'setting-row';
+            const deviceLabel = document.createElement('span');
+            deviceLabel.className = 'setting-label';
+            deviceLabel.textContent = 'Input Mode';
+            deviceRow.appendChild(deviceLabel);
+
+            const deviceSelect = document.createElement('select');
+            deviceSelect.style.cssText = 'background: #333; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 4px;';
+            deviceSelect.innerHTML = `
+                <option value="computer" ${deviceMode === 'computer' ? 'selected' : ''}>Computer</option>
+                <option value="mobile" ${deviceMode === 'mobile' ? 'selected' : ''}>Mobile</option>
+            `;
+            deviceSelect.onchange = () => {
+                deviceMode = deviceSelect.value;
+                setCookie('deviceMode', deviceMode);
+            };
+            deviceRow.appendChild(deviceSelect);
+            deviceCat.appendChild(deviceRow);
+
+            // Clear saved data option
+            const clearRow = document.createElement('div');
+            clearRow.className = 'setting-row';
+            const clearLabel = document.createElement('span');
+            clearLabel.className = 'setting-label';
+            clearLabel.textContent = 'Reset Device Data';
+            clearRow.appendChild(clearLabel);
+
+            const clearBtn = document.createElement('button');
+            clearBtn.textContent = 'Clear';
+            clearBtn.style.cssText = 'background: #c44; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer;';
+            clearBtn.onclick = () => {
+                if (confirm('Clear saved device preferences? You will need to select your device again.')) {
+                    setCookie('deviceMode', '', -1);
+                    location.reload();
+                }
+            };
+            clearRow.appendChild(clearBtn);
+            deviceCat.appendChild(clearRow);
+            container.appendChild(deviceCat);
+
             const categories = {
                 'Gameplay': ['autoJump', 'autoCollectCoins'],
                 'Movement': ['walkSpeed', 'sprintSpeed'],
@@ -2761,16 +2501,21 @@
         
         function selectDevice(mode) {
             deviceMode = mode;
+            setCookie('deviceMode', mode);
             document.getElementById('deviceSelect').style.display = 'none';
-            document.getElementById('modeSelect').style.display = 'block';
-        }
-
-        function selectMode(mode) {
-            gameMode = mode;
-            document.getElementById('modeSelect').style.display = 'none';
             document.getElementById('startSection').style.display = 'block';
         }
 
+        // Check for saved device mode on page load
+        function initDeviceMode() {
+            const savedMode = getCookie('deviceMode');
+            if (savedMode) {
+                deviceMode = savedMode;
+                document.getElementById('deviceSelect').style.display = 'none';
+                document.getElementById('startSection').style.display = 'block';
+            }
+        }
+        
         function openShop() { document.getElementById('shopPanel').style.display = 'flex'; updateShopUI(); }
         function closeShop() { document.getElementById('shopPanel').style.display = 'none'; }
         
@@ -2897,7 +2642,7 @@
             }
         }
 
-        function openSettings() { document.getElementById('settingsPanel').style.display = 'flex'; }
+        function openSettings() { generateSettingsUI(); document.getElementById('settingsPanel').style.display = 'flex'; }
         function closeSettings() { document.getElementById('settingsPanel').style.display = 'none'; }
         function quitGame() { location.reload(); }
         
@@ -3345,46 +3090,6 @@
                         createHitParticles(hitPos, 0xff0000);
                     }
                 }
-            }
-
-            // PvP: Check for hits on other players in multiplayer mode
-            if (gameMode === 'multiplayer' && isInMatch && !isDead) {
-                // Send attack event to server
-                if (partySocket && partySocket.readyState === WebSocket.OPEN) {
-                    partySocket.send(JSON.stringify({
-                        type: 'attack',
-                        weapon: hotbar[selectedSlot] || 'sword',
-                        position: { x: playerState.position.x, y: playerState.position.y, z: playerState.position.z },
-                        direction: { x: dir.x, y: dir.y, z: dir.z }
-                    }));
-                }
-
-                // Check hits against other players
-                otherPlayers.forEach((playerData, playerId) => {
-                    if (!playerData.mesh || playerData.data.health <= 0) return;
-
-                    const otherPos = playerData.mesh.position.clone();
-                    otherPos.y += 1.0; // Adjust for mesh offset
-                    const distToPlayer = camera.position.distanceTo(otherPos);
-
-                    if (distToPlayer < range) {
-                        const toPlayer = otherPos.clone().sub(camera.position).normalize();
-                        const dot = toPlayer.dot(dir);
-                        if (dot > 0.5) {
-                            // Hit! Send damage to server
-                            if (partySocket && partySocket.readyState === WebSocket.OPEN) {
-                                partySocket.send(JSON.stringify({
-                                    type: 'damage',
-                                    targetId: playerId,
-                                    damage: damage
-                                }));
-                            }
-                            // Visual feedback
-                            const hitPos = otherPos.clone();
-                            createHitParticles(hitPos, 0xff0000);
-                        }
-                    }
-                });
             }
         }
         
@@ -4605,32 +4310,6 @@
                     hitSomething = true;
                 }
 
-                // PvP: Check for hits on other players in multiplayer mode
-                if (gameMode === 'multiplayer' && isInMatch && !isDead && !hitSomething) {
-                    otherPlayers.forEach((playerData, playerId) => {
-                        if (!playerData.mesh || playerData.data.health <= 0 || hitSomething) return;
-
-                        const otherPos = playerData.mesh.position.clone();
-                        otherPos.y += 1.0;
-
-                        if (p.mesh.position.distanceTo(otherPos) < 1.2) {
-                            // Hit! Send damage to server
-                            if (partySocket && partySocket.readyState === WebSocket.OPEN) {
-                                partySocket.send(JSON.stringify({
-                                    type: 'damage',
-                                    targetId: playerId,
-                                    damage: p.damage
-                                }));
-                            }
-                            // Visual feedback
-                            const impactPos = p.mesh.position.clone();
-                            createExplosionParticles(impactPos, p.color || 0xff4400, 0xffaa00);
-                            p.life = 0;
-                            hitSomething = true;
-                        }
-                    });
-                }
-
                 if (p.life <= 0) {
                     // Fizzle particles if it didn't hit anything
                     if (!hitSomething) {
@@ -4698,22 +4377,14 @@
             }
 
             updatePlayer(dt);
+            updateEnemies(dt);
+            updateBoss(dt);
             updateProjectiles(dt);
+            updateCoins(dt);
             updateCooldowns(dt);
             updateParticles(dt);
             updateHUD();
-
-            // Mode-specific updates
-            if (gameMode === 'singleplayer') {
-                updateEnemies(dt);
-                updateBoss(dt);
-                updateCoins(dt);
-                updateMinimap();
-            } else if (gameMode === 'multiplayer' && isInMatch) {
-                updateOtherPlayers(dt);
-                renderPlayerNameplates();
-                updateMatchTimer();
-            }
+            updateMinimap();
 
             // Auto-save coins every 15 seconds
             if (timestamp - lastSaveTime > 15000) {
@@ -4725,12 +4396,6 @@
         }
         
         function startGame() {
-            if (gameMode === 'multiplayer') {
-                startMultiplayerGame();
-                return;
-            }
-
-            // Singleplayer mode
             enterFullscreen();
             document.getElementById('menu').style.display = 'none';
             document.getElementById('hud').style.display = 'block';
@@ -4751,534 +4416,6 @@
 
             gameRunning = true;
             startWave();
-        }
-
-        // ============ MULTIPLAYER FUNCTIONS ============
-        function startMultiplayerGame() {
-            enterFullscreen();
-            document.getElementById('menu').style.display = 'none';
-            document.getElementById('lobbyScreen').style.display = 'flex';
-            document.getElementById('lobbyStatus').textContent = 'Connecting to server...';
-
-            connectToMultiplayer();
-        }
-
-        function connectToMultiplayer() {
-            const roomId = 'main-arena'; // Default room
-
-            // Create WebSocket connection to PartyKit
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${PARTYKIT_HOST}/parties/shatterrealms/${roomId}`;
-
-            try {
-                partySocket = new WebSocket(wsUrl);
-
-                partySocket.onopen = () => {
-                    console.log('Connected to multiplayer server');
-                    document.getElementById('lobbyStatus').textContent = 'Connected! Joining game...';
-
-                    // Send join message
-                    const weapon = hotbar[selectedSlot] || 'sword';
-                    partySocket.send(JSON.stringify({
-                        type: 'join',
-                        name: myPlayerName,
-                        weapon: weapon
-                    }));
-                };
-
-                partySocket.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    handleServerMessage(data);
-                };
-
-                partySocket.onclose = () => {
-                    console.log('Disconnected from server');
-                    if (isInMatch) {
-                        showDisconnectedMessage();
-                    }
-                };
-
-                partySocket.onerror = (error) => {
-                    console.error('WebSocket error:', error);
-                    document.getElementById('lobbyStatus').textContent = 'Connection failed. Retrying...';
-                    setTimeout(connectToMultiplayer, 3000);
-                };
-            } catch (e) {
-                console.error('Failed to connect:', e);
-                document.getElementById('lobbyStatus').textContent = 'Connection failed. Check your internet.';
-            }
-        }
-
-        function handleServerMessage(data) {
-            switch (data.type) {
-                case 'game_state':
-                    handleGameState(data);
-                    break;
-                case 'player_joined':
-                    handlePlayerJoined(data.player);
-                    break;
-                case 'player_left':
-                    handlePlayerLeft(data.playerId, data.playerName);
-                    break;
-                case 'player_position':
-                    handlePlayerPosition(data);
-                    break;
-                case 'player_attack':
-                    handlePlayerAttack(data);
-                    break;
-                case 'player_damaged':
-                    handlePlayerDamaged(data);
-                    break;
-                case 'player_killed':
-                    handlePlayerKilled(data);
-                    break;
-                case 'player_respawned':
-                    handlePlayerRespawned(data);
-                    break;
-                case 'match_start':
-                    handleMatchStart(data);
-                    break;
-                case 'time_update':
-                    matchTimeRemaining = data.timeRemaining;
-                    updateMatchTimer();
-                    break;
-                case 'match_end':
-                    handleMatchEnd(data);
-                    break;
-            }
-        }
-
-        function handleGameState(data) {
-            myPlayerId = data.playerId;
-            matchTimeRemaining = data.timeRemaining;
-
-            // Add existing players
-            data.players.forEach(player => {
-                if (player.id !== myPlayerId) {
-                    createOtherPlayer(player);
-                }
-            });
-
-            // Update lobby display
-            updateLobbyDisplay(data.players);
-
-            // Transition to game
-            setTimeout(() => {
-                startMultiplayerMatch();
-            }, 1000);
-        }
-
-        function handlePlayerJoined(player) {
-            if (player.id !== myPlayerId) {
-                createOtherPlayer(player);
-                showKillFeedMessage(`${player.name} joined the game`);
-            }
-        }
-
-        function handlePlayerLeft(playerId, playerName) {
-            removeOtherPlayer(playerId);
-            showKillFeedMessage(`${playerName} left the game`);
-        }
-
-        function handlePlayerPosition(data) {
-            const playerData = otherPlayers.get(data.playerId);
-            if (playerData) {
-                // Smoothly interpolate position
-                playerData.targetPosition = new THREE.Vector3(data.position.x, data.position.y, data.position.z);
-                playerData.targetRotation = data.rotation.y;
-                playerData.data.health = data.health;
-                updateOtherPlayerHealthbar(data.playerId);
-            }
-        }
-
-        function handlePlayerAttack(data) {
-            // Show attack animation for other player
-            const playerData = otherPlayers.get(data.playerId);
-            if (playerData) {
-                // Create attack visual effect
-                createAttackEffect(data.position, data.weapon);
-            }
-        }
-
-        function handlePlayerDamaged(data) {
-            if (data.targetId === myPlayerId) {
-                // We got hit!
-                const finalDamage = Math.max(1, data.damage - playerState.defense);
-                playerState.health = data.health;
-                showDamageNumber(camera.position, finalDamage, true);
-
-                if (playerState.health <= 0) {
-                    handleMyDeath(data.attackerId);
-                }
-            } else {
-                // Another player got hit
-                const playerData = otherPlayers.get(data.targetId);
-                if (playerData) {
-                    playerData.data.health = data.health;
-                    updateOtherPlayerHealthbar(data.targetId);
-                    showDamageNumber(playerData.mesh.position, data.damage, false);
-                }
-            }
-        }
-
-        function handlePlayerKilled(data) {
-            showKillFeedMessage(`${data.killerName} killed ${data.targetName}`);
-
-            if (data.killerId === myPlayerId) {
-                pvpStats.kills++;
-            }
-            if (data.targetId === myPlayerId) {
-                pvpStats.deaths++;
-            }
-        }
-
-        function handlePlayerRespawned(data) {
-            if (data.playerId === myPlayerId) {
-                // We respawned
-                playerState.health = data.health;
-                playerState.position.set(data.position.x, data.position.y, data.position.z);
-                isDead = false;
-                document.getElementById('respawnTimer').style.display = 'none';
-            } else {
-                const playerData = otherPlayers.get(data.playerId);
-                if (playerData) {
-                    playerData.mesh.position.set(data.position.x, data.position.y, data.position.z);
-                    playerData.data.health = data.health;
-                    playerData.mesh.visible = true;
-                    updateOtherPlayerHealthbar(data.playerId);
-                }
-            }
-        }
-
-        function handleMatchStart(data) {
-            matchTimeRemaining = data.matchDuration;
-            pvpStats = { kills: 0, deaths: 0 };
-            showKillFeedMessage('Match started!');
-        }
-
-        function handleMatchEnd(data) {
-            isInMatch = false;
-            gameRunning = false;
-
-            // Show match end screen
-            document.getElementById('matchEndScreen').style.display = 'flex';
-            document.getElementById('winnerName').textContent = `Winner: ${data.winnerName} (${data.winnerKills} kills)`;
-
-            if (data.winnerId === myPlayerId) {
-                inventory.coins += data.reward;
-                document.getElementById('rewardText').textContent = `You won! +${data.reward} coins`;
-                saveToCloud();
-            } else {
-                document.getElementById('rewardText').textContent = 'Better luck next time!';
-            }
-
-            // Build final scoreboard
-            let scoreboardHtml = '<div class="scoreboard-header"><span class="player-name">Player</span><span class="player-kills">Kills</span><span class="player-deaths">Deaths</span></div>';
-            data.scoreboard.forEach((p, i) => {
-                const isMe = p.id === myPlayerId;
-                const isWinner = i === 0;
-                scoreboardHtml += `<div class="scoreboard-row ${isMe ? 'me' : ''} ${isWinner ? 'winner' : ''}">
-                    <span class="player-name">${p.name}</span>
-                    <span class="player-kills">${p.kills}</span>
-                    <span class="player-deaths">${p.deaths}</span>
-                </div>`;
-            });
-            document.getElementById('finalScoreboard').innerHTML = scoreboardHtml;
-        }
-
-        function handleMyDeath(killerId) {
-            isDead = true;
-            pvpStats.deaths++;
-            document.getElementById('respawnTimer').style.display = 'block';
-
-            let countdown = 5;
-            document.getElementById('respawnTimer').textContent = countdown;
-
-            const respawnInterval = setInterval(() => {
-                countdown--;
-                document.getElementById('respawnTimer').textContent = countdown;
-
-                if (countdown <= 0) {
-                    clearInterval(respawnInterval);
-                    // Request respawn from server
-                    if (partySocket && partySocket.readyState === WebSocket.OPEN) {
-                        partySocket.send(JSON.stringify({ type: 'respawn' }));
-                    }
-                }
-            }, 1000);
-        }
-
-        function startMultiplayerMatch() {
-            document.getElementById('lobbyScreen').style.display = 'none';
-            document.getElementById('hud').style.display = 'block';
-            document.getElementById('coinsDisplay').style.display = 'block';
-            document.getElementById('crosshair').style.display = 'block';
-            document.getElementById('hotbar').style.display = 'flex';
-            document.getElementById('matchTimer').style.display = 'block';
-            document.getElementById('killFeed').style.display = 'block';
-
-            // Hide singleplayer stats panel (wave/score)
-            document.getElementById('statsPanel').style.display = 'none';
-
-            setupInput();
-
-            if (deviceMode === 'mobile') {
-                document.getElementById('mobileControls').style.display = 'block';
-            } else {
-                renderer.domElement.requestPointerLock();
-            }
-
-            isInMatch = true;
-            gameRunning = true;
-            isDead = false;
-
-            // Reset player position
-            playerState.position.set(Math.random() * 40 - 20, 1.7, Math.random() * 40 - 20);
-            playerState.health = playerState.maxHealth;
-            playerState.energy = playerState.maxEnergy;
-
-            // Start position sync
-            startPositionSync();
-        }
-
-        function startPositionSync() {
-            // Send position updates 30 times per second
-            setInterval(() => {
-                if (partySocket && partySocket.readyState === WebSocket.OPEN && isInMatch && !isDead) {
-                    partySocket.send(JSON.stringify({
-                        type: 'position',
-                        position: {
-                            x: playerState.position.x,
-                            y: playerState.position.y,
-                            z: playerState.position.z
-                        },
-                        rotation: {
-                            x: playerState.rotation.x,
-                            y: playerState.rotation.y
-                        },
-                        weapon: hotbar[selectedSlot] || 'sword'
-                    }));
-                }
-            }, 33); // ~30fps
-        }
-
-        function createOtherPlayer(playerData) {
-            // Create a simple player mesh (humanoid shape)
-            const group = new THREE.Group();
-
-            // Body
-            const bodyGeo = new THREE.CapsuleGeometry(0.3, 0.8, 4, 8);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x4444ff });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 0.8;
-            group.add(body);
-
-            // Head
-            const headGeo = new THREE.SphereGeometry(0.25, 16, 16);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 1.6;
-            group.add(head);
-
-            group.position.set(playerData.position.x, playerData.position.y - 1.7, playerData.position.z);
-            scene.add(group);
-
-            otherPlayers.set(playerData.id, {
-                mesh: group,
-                targetPosition: new THREE.Vector3(playerData.position.x, playerData.position.y, playerData.position.z),
-                targetRotation: 0,
-                data: playerData
-            });
-        }
-
-        function removeOtherPlayer(playerId) {
-            const playerData = otherPlayers.get(playerId);
-            if (playerData) {
-                scene.remove(playerData.mesh);
-                otherPlayers.delete(playerId);
-            }
-        }
-
-        function updateOtherPlayerHealthbar(playerId) {
-            // Health bars are rendered in the game loop
-        }
-
-        function updateOtherPlayers(dt) {
-            otherPlayers.forEach((playerData, playerId) => {
-                // Interpolate position
-                if (playerData.targetPosition) {
-                    playerData.mesh.position.lerp(
-                        new THREE.Vector3(
-                            playerData.targetPosition.x,
-                            playerData.targetPosition.y - 1.7,
-                            playerData.targetPosition.z
-                        ),
-                        0.1
-                    );
-                }
-
-                // Interpolate rotation
-                if (playerData.targetRotation !== undefined) {
-                    playerData.mesh.rotation.y = playerData.targetRotation;
-                }
-            });
-        }
-
-        function renderPlayerNameplates() {
-            // Render nameplates above other players
-            otherPlayers.forEach((playerData, playerId) => {
-                const pos = playerData.mesh.position.clone();
-                pos.y += 2.2;
-
-                // Project to screen
-                const screenPos = pos.clone().project(camera);
-                const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
-                const y = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
-
-                // Check if in front of camera
-                if (screenPos.z < 1) {
-                    // Create or update nameplate element
-                    let nameplate = document.getElementById(`nameplate-${playerId}`);
-                    if (!nameplate) {
-                        nameplate = document.createElement('div');
-                        nameplate.id = `nameplate-${playerId}`;
-                        nameplate.className = 'other-player-nameplate';
-                        nameplate.innerHTML = `
-                            <div>${playerData.data.name}</div>
-                            <div class="other-player-healthbar">
-                                <div class="other-player-healthbar-fill" style="width: 100%"></div>
-                            </div>
-                        `;
-                        document.body.appendChild(nameplate);
-                    }
-
-                    nameplate.style.left = x + 'px';
-                    nameplate.style.top = y + 'px';
-                    nameplate.style.transform = 'translate(-50%, -100%)';
-
-                    // Update health bar
-                    const healthPercent = (playerData.data.health / 100) * 100;
-                    nameplate.querySelector('.other-player-healthbar-fill').style.width = healthPercent + '%';
-                }
-            });
-        }
-
-        function updateMatchTimer() {
-            const minutes = Math.floor(matchTimeRemaining / 60000);
-            const seconds = Math.floor((matchTimeRemaining % 60000) / 1000);
-            document.getElementById('matchTimer').textContent =
-                `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        function showKillFeedMessage(message) {
-            const killFeed = document.getElementById('killFeed');
-            const msgEl = document.createElement('div');
-            msgEl.className = 'kill-message';
-            msgEl.textContent = message;
-            killFeed.appendChild(msgEl);
-
-            setTimeout(() => {
-                msgEl.remove();
-            }, 3000);
-        }
-
-        function createAttackEffect(position, weapon) {
-            // Visual effect for attacks
-            const color = 0xff4444;
-            createSparkParticles(new THREE.Vector3(position.x, position.y, position.z), color, 5);
-        }
-
-        function showDisconnectedMessage() {
-            alert('Disconnected from server. Returning to menu.');
-            backToMenuFromMultiplayer();
-        }
-
-        function updateLobbyDisplay(players) {
-            const lobbyPlayersEl = document.getElementById('lobbyPlayers');
-            lobbyPlayersEl.innerHTML = '';
-            players.forEach(p => {
-                const div = document.createElement('div');
-                div.className = 'lobby-player';
-                div.textContent = p.name;
-                lobbyPlayersEl.appendChild(div);
-            });
-            document.getElementById('lobbyStatus').textContent = `${players.length} player(s) in game`;
-        }
-
-        function leaveLobby() {
-            if (partySocket) {
-                partySocket.close();
-            }
-            document.getElementById('lobbyScreen').style.display = 'none';
-            document.getElementById('menu').style.display = 'flex';
-        }
-
-        function playAgainMultiplayer() {
-            document.getElementById('matchEndScreen').style.display = 'none';
-            cleanupMultiplayer();
-            startMultiplayerGame();
-        }
-
-        function backToMenuFromMultiplayer() {
-            document.getElementById('matchEndScreen').style.display = 'none';
-            document.getElementById('lobbyScreen').style.display = 'none';
-            document.getElementById('matchTimer').style.display = 'none';
-            document.getElementById('killFeed').style.display = 'none';
-            cleanupMultiplayer();
-            backToMenu();
-        }
-
-        function cleanupMultiplayer() {
-            if (partySocket) {
-                partySocket.close();
-                partySocket = null;
-            }
-            otherPlayers.forEach((playerData, playerId) => {
-                scene.remove(playerData.mesh);
-                const nameplate = document.getElementById(`nameplate-${playerId}`);
-                if (nameplate) nameplate.remove();
-            });
-            otherPlayers.clear();
-            isInMatch = false;
-            isDead = false;
-        }
-
-        // Toggle scoreboard with TAB key
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Tab' && isInMatch) {
-                e.preventDefault();
-                document.getElementById('scoreboard').style.display = 'block';
-                updateScoreboardDisplay();
-            }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (e.code === 'Tab') {
-                document.getElementById('scoreboard').style.display = 'none';
-            }
-        });
-
-        function updateScoreboardDisplay() {
-            const content = document.getElementById('scoreboardContent');
-            let html = '';
-
-            // Add self
-            html += `<div class="scoreboard-row me">
-                <span class="player-name">${myPlayerName} (You)</span>
-                <span class="player-kills">${pvpStats.kills}</span>
-                <span class="player-deaths">${pvpStats.deaths}</span>
-            </div>`;
-
-            // Add other players
-            otherPlayers.forEach((playerData) => {
-                html += `<div class="scoreboard-row">
-                    <span class="player-name">${playerData.data.name}</span>
-                    <span class="player-kills">${playerData.data.kills || 0}</span>
-                    <span class="player-deaths">${playerData.data.deaths || 0}</span>
-                </div>`;
-            });
-
-            content.innerHTML = html;
         }
         
         function restartGame() {
@@ -5348,6 +4485,7 @@
         });
         
         init();
+        initDeviceMode();
         checkPaymentSuccess();
         gameLoop(0);
     </script>

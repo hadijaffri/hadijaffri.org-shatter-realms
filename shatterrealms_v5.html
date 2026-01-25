@@ -684,6 +684,30 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        // Cookie helpers for persistent data
+        function setCookie(name, value, days = 365) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/; SameSite=Lax';
+        }
+
+        function getCookie(name) {
+            const value = document.cookie.split('; ').find(row => row.startsWith(name + '='));
+            return value ? decodeURIComponent(value.split('=')[1]) : null;
+        }
+
+        // Generate or retrieve device ID
+        function getDeviceId() {
+            let deviceId = getCookie('deviceId');
+            if (!deviceId) {
+                deviceId = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+                setCookie('deviceId', deviceId);
+            }
+            return deviceId;
+        }
+
+        // Initialize device ID on load
+        const deviceId = getDeviceId();
+
         // Game State
         let scene, camera, renderer, player;
         let gameRunning = false;
@@ -693,7 +717,7 @@
         let colliders = [];
         let buildings = [];
         let boss = null;
-        let deviceMode = 'computer';
+        let deviceMode = getCookie('deviceMode') || 'computer';
         let playerState = null;
         let swordMesh = null;
         let swordSwinging = false;
@@ -2317,7 +2341,56 @@
         function generateSettingsUI() {
             const container = document.getElementById('settingsContent');
             container.innerHTML = '';
-            
+
+            // Device mode setting
+            const deviceCat = document.createElement('div');
+            deviceCat.className = 'settings-category';
+            const deviceTitle = document.createElement('div');
+            deviceTitle.className = 'settings-category-title';
+            deviceTitle.textContent = 'Device';
+            deviceCat.appendChild(deviceTitle);
+
+            const deviceRow = document.createElement('div');
+            deviceRow.className = 'setting-row';
+            const deviceLabel = document.createElement('span');
+            deviceLabel.className = 'setting-label';
+            deviceLabel.textContent = 'Input Mode';
+            deviceRow.appendChild(deviceLabel);
+
+            const deviceSelect = document.createElement('select');
+            deviceSelect.style.cssText = 'background: #333; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 4px;';
+            deviceSelect.innerHTML = `
+                <option value="computer" ${deviceMode === 'computer' ? 'selected' : ''}>Computer</option>
+                <option value="mobile" ${deviceMode === 'mobile' ? 'selected' : ''}>Mobile</option>
+            `;
+            deviceSelect.onchange = () => {
+                deviceMode = deviceSelect.value;
+                setCookie('deviceMode', deviceMode);
+            };
+            deviceRow.appendChild(deviceSelect);
+            deviceCat.appendChild(deviceRow);
+
+            // Clear saved data option
+            const clearRow = document.createElement('div');
+            clearRow.className = 'setting-row';
+            const clearLabel = document.createElement('span');
+            clearLabel.className = 'setting-label';
+            clearLabel.textContent = 'Reset Device Data';
+            clearRow.appendChild(clearLabel);
+
+            const clearBtn = document.createElement('button');
+            clearBtn.textContent = 'Clear';
+            clearBtn.style.cssText = 'background: #c44; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer;';
+            clearBtn.onclick = () => {
+                if (confirm('Clear saved device preferences? You will need to select your device again.')) {
+                    setCookie('deviceMode', '', -1);
+                    location.reload();
+                }
+            };
+            clearRow.appendChild(clearBtn);
+            deviceCat.appendChild(clearRow);
+            container.appendChild(deviceCat);
+
             const categories = {
                 'Gameplay': ['autoJump', 'autoCollectCoins'],
                 'Movement': ['walkSpeed', 'sprintSpeed'],
@@ -2428,8 +2501,19 @@
         
         function selectDevice(mode) {
             deviceMode = mode;
+            setCookie('deviceMode', mode);
             document.getElementById('deviceSelect').style.display = 'none';
             document.getElementById('startSection').style.display = 'block';
+        }
+
+        // Check for saved device mode on page load
+        function initDeviceMode() {
+            const savedMode = getCookie('deviceMode');
+            if (savedMode) {
+                deviceMode = savedMode;
+                document.getElementById('deviceSelect').style.display = 'none';
+                document.getElementById('startSection').style.display = 'block';
+            }
         }
         
         function openShop() { document.getElementById('shopPanel').style.display = 'flex'; updateShopUI(); }
@@ -2518,7 +2602,7 @@
 
         async function buyCoins(coinPackage) {
             try {
-                const response = await fetch('http://localhost:8000/api/create-checkout-session', {
+                const response = await fetch('/api/create-checkout-session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2558,7 +2642,7 @@
             }
         }
 
-        function openSettings() { document.getElementById('settingsPanel').style.display = 'flex'; }
+        function openSettings() { generateSettingsUI(); document.getElementById('settingsPanel').style.display = 'flex'; }
         function closeSettings() { document.getElementById('settingsPanel').style.display = 'none'; }
         function quitGame() { location.reload(); }
         
@@ -4401,6 +4485,7 @@
         });
         
         init();
+        initDeviceMode();
         checkPaymentSuccess();
         gameLoop(0);
     </script>

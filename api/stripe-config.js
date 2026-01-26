@@ -1,12 +1,12 @@
 // Vercel Serverless Function to provide Stripe public key
+import { setCorsHeaders, handleOptions } from './_lib/cors.js';
+
 export default async function handler(req, res) {
     // Enable CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    setCorsHeaders(res);
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+    if (handleOptions(req, res)) {
+        return;
     }
 
     if (req.method !== 'GET') {

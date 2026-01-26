@@ -1,14 +1,14 @@
 // Vercel Serverless Function for Stripe Checkout
+import { setCorsHeaders, handleOptions } from './_lib/cors.js';
+
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
     // Enable CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    setCorsHeaders(res);
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+    if (handleOptions(req, res)) {
+        return;
     }
 
     if (req.method !== 'POST') {

@@ -1,14 +1,13 @@
 // Vercel Serverless Function for cloud saves
 // Note: For production, you'd want to integrate with a database like Vercel KV or Planetscale
+import { setCorsHeaders, handleOptions } from './_lib/cors.js';
 
 export default async function handler(req, res) {
     // Enable CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    setCorsHeaders(res);
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+    if (handleOptions(req, res)) {
+        return;
     }
 
     // For demo purposes, we'll use a simple in-memory store
@@ -32,7 +31,7 @@ export default async function handler(req, res) {
                 coins: data.coins,
                 ownedItems: data.ownedItems
             });
-        } catch (e) {
+        } catch (_e) {
             return res.status(400).json({ error: 'Invalid data' });
         }
     }

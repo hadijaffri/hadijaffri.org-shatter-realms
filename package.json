@@ -7,7 +7,10 @@
     "start": "node server.js",
     "dev": "node server.js",
     "party:dev": "partykit dev",
-    "party:deploy": "partykit deploy"
+    "party:deploy": "partykit deploy",
+    "lint": "eslint \"api/**/*.js\"",
+    "format": "prettier --write \"**/*.{js,ts,json,md}\"",
+    "test": "jest"
   },
   "keywords": [
     "game",
@@ -20,14 +23,18 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
     "dotenv": "^17.2.3",
     "partysocket": "^0.0.25",
     "stripe": "^20.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/node": "^25.0.10",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "jest": "^30.2.0",
     "partykit": "^0.0.115",
+    "prettier": "^3.8.1",
     "typescript": "^5.9.3"
   }
 }

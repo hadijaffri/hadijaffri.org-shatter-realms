@@ -4,754 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ShatterRealms - Realism Edition</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            touch-action: none;
-        }
-        body {
-            background: #000;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        #hud {
-            position: fixed;
-            bottom: 100px;
-            left: 15px;
-            pointer-events: none;
-            z-index: 100;
-        }
-        
-        .bar-container {
-            width: 180px;
-            height: 18px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 9px;
-            margin-bottom: 5px;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .bar-fill { height: 100%; transition: width 0.3s ease; }
-        #healthBar .bar-fill { background: linear-gradient(90deg, #8b0000, #ff3333); }
-        #energyBar .bar-fill { background: linear-gradient(90deg, #003366, #0088ff); }
-        
-        .bar-text {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
-        }
-        
-        .bar-icon {
-            position: absolute;
-            left: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 11px;
-        }
-        
-        #coinsDisplay {
-            position: fixed;
-            top: 15px;
-            right: 130px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid gold;
-            border-radius: 15px;
-            padding: 5px 12px;
-            color: gold;
-            font-size: 14px;
-            font-weight: bold;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        #addCoinsBtn {
-            background: gold;
-            color: #000;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-        }
-
-        #addCoinsBtn:hover {
-            background: #ffdd00;
-            transform: scale(1.1);
-        }
-
-        #customCoinModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 300;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: #1a1a2e;
-            border: 2px solid gold;
-            border-radius: 15px;
-            padding: 25px;
-            text-align: center;
-            max-width: 350px;
-        }
-
-        .modal-content h3 {
-            color: gold;
-            margin-bottom: 20px;
-        }
-
-        .modal-content input {
-            width: 100%;
-            padding: 12px;
-            font-size: 18px;
-            border: 2px solid #444;
-            border-radius: 8px;
-            background: #222;
-            color: white;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .modal-content input:focus {
-            outline: none;
-            border-color: gold;
-        }
-
-        #priceDisplay {
-            color: #0f0;
-            font-size: 20px;
-            margin: 15px 0;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 15px;
-        }
-
-        .modal-btn {
-            padding: 10px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .modal-btn.buy {
-            background: linear-gradient(135deg, #00aa00, #008800);
-            color: white;
-        }
-
-        .modal-btn.cancel {
-            background: #444;
-            color: white;
-        }
-
-        #multiplayerLobby {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.95);
-            z-index: 250;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-
-        .lobby-content {
-            text-align: center;
-            color: white;
-        }
-
-        .lobby-content h2 {
-            color: gold;
-            margin-bottom: 20px;
-        }
-
-        #lobbyStatus {
-            font-size: 18px;
-            margin: 20px 0;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #333;
-            border-top: 4px solid gold;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        #playerCount {
-            color: #0f0;
-            font-size: 24px;
-            margin: 10px 0;
-        }
-        
-        #statsPanel {
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            padding: 8px;
-            color: white;
-            font-size: 10px;
-            z-index: 100;
-        }
-        
-        .stat-label { color: #aaa; font-size: 8px; }
-        .stat-value { color: #fff; font-weight: bold; font-size: 12px; }
-        
-        #hotbar {
-            position: fixed;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 3px;
-            z-index: 110;
-            pointer-events: auto;
-        }
-        
-        .hotbar-slot {
-            width: 45px;
-            height: 45px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 5px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            cursor: pointer;
-        }
-        
-        .hotbar-slot.selected {
-            border-color: #ffcc00;
-            box-shadow: 0 0 8px rgba(255, 200, 0, 0.5);
-        }
-        
-        .hotbar-slot .item-icon { font-size: 18px; }
-        .hotbar-slot .item-name { font-size: 6px; color: #aaa; }
-        .hotbar-slot .slot-key {
-            position: absolute;
-            top: 1px; left: 3px;
-            font-size: 8px;
-            color: #888;
-        }
-        
-        .hotbar-slot .cooldown-overlay {
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            font-size: 10px;
-            text-align: center;
-            display: none;
-        }
-        
-        #minimap {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            width: 90px;
-            height: 90px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            overflow: hidden;
-            z-index: 100;
-        }
-        
-        #crosshair {
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 100;
-            width: 16px; height: 16px;
-        }
-        
-        #crosshair::before, #crosshair::after {
-            content: '';
-            position: absolute;
-            background: rgba(255, 255, 255, 0.6);
-        }
-        
-        #crosshair::before { width: 12px; height: 2px; top: 7px; left: 2px; }
-        #crosshair::after { width: 2px; height: 12px; top: 2px; left: 7px; }
-        
-        #waveAnnounce {
-            position: fixed;
-            top: 25%;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 36px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 0 0 20px rgba(255, 100, 100, 0.8);
-            opacity: 0;
-            transition: opacity 0.5s;
-            z-index: 200;
-            pointer-events: none;
-        }
-        
-        #bossHealth {
-            position: fixed;
-            top: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 280px;
-            display: none;
-            z-index: 100;
-        }
-        
-        #bossName {
-            text-align: center;
-            color: #ff4444;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 3px;
-        }
-        
-        #bossBarContainer {
-            height: 12px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #ff4444;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-        
-        #bossFill {
-            height: 100%;
-            background: linear-gradient(90deg, #660000, #ff0000);
-            width: 100%;
-            transition: width 0.3s;
-        }
-        
-        #menu {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a1a2a 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        
-        #menu h1 {
-            font-size: 42px;
-            color: #fff;
-            text-shadow: 0 0 40px rgba(100, 200, 255, 0.8);
-            margin-bottom: 5px;
-        }
-        
-        #menu h2 {
-            font-size: 14px;
-            color: #88ccff;
-            margin-bottom: 20px;
-            font-weight: normal;
-        }
-        
-        .menu-btn {
-            padding: 10px 30px;
-            font-size: 14px;
-            background: linear-gradient(135deg, #4a00e0, #8e2de2);
-            border: none;
-            border-radius: 18px;
-            color: white;
-            cursor: pointer;
-            margin: 5px;
-            transition: all 0.3s;
-        }
-        
-        .menu-btn:hover { transform: scale(1.05); }
-        .menu-btn.shop-btn { background: linear-gradient(135deg, #f39c12, #e74c3c); }
-        .menu-btn.settings-btn { background: linear-gradient(135deg, #27ae60, #2ecc71); }
-        .menu-btn.quit-btn { background: linear-gradient(135deg, #636e72, #2d3436); }
-        
-        .panel {
-            display: none;
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(10, 10, 30, 0.98);
-            border: 3px solid #8e2de2;
-            border-radius: 15px;
-            z-index: 1001;
-            width: 90%;
-            max-width: 450px;
-            max-height: 75vh;
-            overflow: hidden;
-            flex-direction: column;
-        }
-        
-        .panel-header {
-            padding: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
-        
-        .panel-header h2 { color: gold; margin: 0; font-size: 18px; }
-        
-        .panel-content {
-            padding: 12px;
-            overflow-y: auto;
-            flex: 1;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .close-btn {
-            font-size: 22px;
-            color: white;
-            cursor: pointer;
-            background: none;
-            border: none;
-            padding: 5px 10px;
-        }
-        
-        #shopPanel { border-color: #f39c12; }
-        #shopPanel .panel-header h2 { color: #f39c12; }
-        
-        .shop-item {
-            display: flex;
-            align-items: center;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            padding: 8px;
-            margin: 6px 0;
-            gap: 8px;
-        }
-        
-        .shop-item-icon { font-size: 24px; }
-        .shop-item-info { flex: 1; }
-        .shop-item-name { color: white; font-weight: bold; font-size: 12px; }
-        .shop-item-desc { color: #888; font-size: 10px; }
-        .shop-item-price { color: gold; font-weight: bold; font-size: 12px; margin-right: 8px; }
-        
-        .shop-buy-btn {
-            padding: 5px 12px;
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            cursor: pointer;
-            font-size: 11px;
-        }
-        
-        .shop-buy-btn:disabled { background: #444; cursor: not-allowed; }
-
-        .coin-packages {
-            margin-bottom: 20px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .coin-packages-title {
-            color: gold;
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 12px;
-            text-align: center;
-        }
-
-        .coin-package {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
-            border: 2px solid rgba(255, 215, 0, 0.3);
-            border-radius: 12px;
-            padding: 12px;
-            margin: 8px 0;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .coin-package:hover {
-            transform: scale(1.02);
-            border-color: gold;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-        }
-
-        .coin-package-info {
-            flex: 1;
-        }
-
-        .coin-package-name {
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
-
-        .coin-package-coins {
-            color: gold;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .coin-package-price {
-            color: #2ecc71;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .shop-divider {
-            margin: 20px 0;
-            text-align: center;
-            color: #888;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        #settingsPanel { border-color: #27ae60; }
-        #settingsPanel .panel-header h2 { color: #2ecc71; }
-        
-        .settings-category { margin-bottom: 12px; }
-        
-        .settings-category-title {
-            color: #8e2de2;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 6px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid rgba(142, 45, 226, 0.3);
-        }
-        
-        .setting-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        
-        .setting-label { color: #ccc; font-size: 11px; }
-        
-        .toggle-switch {
-            width: 40px;
-            height: 20px;
-            background: #444;
-            border-radius: 10px;
-            cursor: pointer;
-            position: relative;
-            transition: background 0.3s;
-            flex-shrink: 0;
-        }
-        
-        .toggle-switch.on { background: #2ecc71; }
-        
-        .toggle-switch::after {
-            content: '';
-            position: absolute;
-            width: 16px; height: 16px;
-            background: white;
-            border-radius: 50%;
-            top: 2px; left: 2px;
-            transition: left 0.3s;
-        }
-        
-        .toggle-switch.on::after { left: 22px; }
-        
-        .slider-container { display: flex; align-items: center; gap: 6px; }
-        
-        .slider {
-            width: 70px;
-            height: 5px;
-            -webkit-appearance: none;
-            background: #444;
-            border-radius: 3px;
-            outline: none;
-        }
-        
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 12px; height: 12px;
-            background: #2ecc71;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        
-        .slider-value { color: #2ecc71; font-size: 10px; min-width: 25px; }
-        
-        #mobileControls {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 100;
-        }
-        
-        #joystickZone {
-            position: absolute;
-            bottom: 25px;
-            left: 25px;
-            width: 130px;
-            height: 130px;
-            pointer-events: none;
-            z-index: 60;
-        }
-        
-        #joystickBase {
-            width: 110px;
-            height: 110px;
-            background: rgba(255, 255, 255, 0.12);
-            border: 3px solid rgba(255, 255, 255, 0.25);
-            border-radius: 50%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        #joystickKnob {
-            width: 45px;
-            height: 45px;
-            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.25));
-            border-radius: 50%;
-            position: absolute;
-            will-change: transform;
-        }
-        
-        .mobile-btn {
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            font-size: 20px;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 60;
-        }
-        
-        #attackBtn {
-            bottom: 70px;
-            right: 20px;
-            width: 65px;
-            height: 65px;
-            font-size: 26px;
-            background: rgba(255, 50, 50, 0.15);
-            border-color: rgba(255, 100, 100, 0.3);
-        }
-        
-        #jumpBtn {
-            bottom: 155px;
-            right: 20px;
-            background: rgba(100, 200, 255, 0.15);
-            border-color: rgba(150, 220, 255, 0.3);
-        }
-        
-        #dashBtn {
-            bottom: 70px;
-            right: 105px;
-            background: rgba(50, 150, 255, 0.15);
-            border-color: rgba(100, 180, 255, 0.3);
-        }
-        
-        .damage-number {
-            position: fixed;
-            pointer-events: none;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
-            z-index: 150;
-            animation: floatUp 1s forwards;
-        }
-        
-        @keyframes floatUp {
-            0% { opacity: 1; transform: translateY(0) scale(1); }
-            100% { opacity: 0; transform: translateY(-35px) scale(0.5); }
-        }
-        
-        .coin-pickup {
-            position: fixed;
-            color: gold;
-            font-weight: bold;
-            font-size: 14px;
-            pointer-events: none;
-            animation: coinFloat 1s forwards;
-            z-index: 150;
-        }
-        
-        @keyframes coinFloat {
-            0% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-        }
-
-        @keyframes fadeOut {
-            0% { opacity: 1; }
-            70% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-
-        #gameOver {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        
-        #gameOver h1 { font-size: 38px; color: #ff4444; margin-bottom: 12px; }
-        #gameOver p { color: #fff; font-size: 14px; margin: 4px 0; }
-        
-        .mobile-mode #hud { bottom: 150px; left: 8px; }
-        .mobile-mode .bar-container { width: 140px; height: 16px; }
-        .mobile-mode #hotbar { bottom: 75px; transform: translateX(-50%) scale(0.8); }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="menu">
@@ -3056,6 +2309,7 @@
 
         // ========== INVENTORY MANAGEMENT ==========
         let generatedWeapons = JSON.parse(localStorage.getItem('generatedWeapons') || '[]');
+        let inventoryOrder = JSON.parse(localStorage.getItem('inventoryOrder') || '[]');
 
         function openInventory() {
             document.getElementById('inventoryPanel').style.display = 'flex';
@@ -3064,6 +2318,10 @@
 
         function closeInventory() {
             document.getElementById('inventoryPanel').style.display = 'none';
+        }
+
+        function saveInventoryOrder() {
+            localStorage.setItem('inventoryOrder', JSON.stringify(inventoryOrder));
         }
 
         function renderInventory() {
@@ -3075,11 +2333,30 @@
                 const item = itemId ? (itemDefs[itemId] || generatedWeapons.find(w => w.id === itemId)) : null;
                 const slot = document.createElement('div');
                 slot.className = 'hotbar-slot' + (i === selectedSlot ? ' selected' : '');
-                slot.style.cssText = 'width: 60px; height: 60px; cursor: pointer;';
-                slot.innerHTML = item ? `
-                    <span class="item-icon">${item.icon}</span>
-                    <span class="item-name">${item.name}</span>
-                ` : `<span style="color: #444;">Empty</span>`;
+                slot.style.cssText = 'width: 60px; height: 60px; cursor: pointer; position: relative; transition: all 0.2s;';
+                slot.setAttribute('data-slot-index', i);
+
+                if (item) {
+                    slot.draggable = true;
+                    slot.innerHTML = `
+                        <span class="item-icon">${item.icon}</span>
+                        <span class="item-name">${item.name}</span>
+                    `;
+
+                    // Drag from hotbar
+                    slot.ondragstart = (e) => {
+                        e.dataTransfer.setData('weaponId', itemId);
+                        e.dataTransfer.setData('fromHotbar', i.toString());
+                        slot.style.opacity = '0.5';
+                    };
+                    slot.ondragend = (e) => {
+                        slot.style.opacity = '1';
+                    };
+                } else {
+                    slot.innerHTML = `<span style="color: #444;">Empty</span>`;
+                }
+
+                // Click to unequip
                 slot.onclick = () => {
                     if (item) {
                         hotbar[i] = null;
@@ -3087,15 +2364,59 @@
                         setupHotbar();
                     }
                 };
-                slot.ondragover = (e) => e.preventDefault();
+
+                // Right-click context menu
+                slot.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    if (item) {
+                        if (confirm(`Unequip ${item.name}?`)) {
+                            hotbar[i] = null;
+                            renderInventory();
+                            setupHotbar();
+                        }
+                    }
+                };
+
+                slot.ondragover = (e) => {
+                    e.preventDefault();
+                    slot.style.background = 'rgba(255, 255, 0, 0.3)';
+                };
+
+                slot.ondragleave = (e) => {
+                    slot.style.background = '';
+                };
+
                 slot.ondrop = (e) => {
                     e.preventDefault();
+                    slot.style.background = '';
+
                     const weaponId = e.dataTransfer.getData('weaponId');
+                    const fromHotbarIndex = e.dataTransfer.getData('fromHotbar');
+
                     if (weaponId) {
-                        // Remove from old slot if exists
-                        const oldSlot = hotbar.indexOf(weaponId);
-                        if (oldSlot !== -1) hotbar[oldSlot] = null;
-                        hotbar[i] = weaponId;
+                        if (fromHotbarIndex !== '') {
+                            // Swapping between hotbar slots
+                            const fromIndex = parseInt(fromHotbarIndex);
+                            const currentWeapon = hotbar[i];
+                            hotbar[i] = weaponId;
+                            hotbar[fromIndex] = currentWeapon;
+                        } else {
+                            // Moving from inventory to hotbar
+                            const oldSlot = hotbar.indexOf(weaponId);
+                            if (oldSlot !== -1) hotbar[oldSlot] = null;
+
+                            // If slot is occupied, swap
+                            if (hotbar[i]) {
+                                const temp = hotbar[i];
+                                hotbar[i] = weaponId;
+                                // Put the displaced weapon in the old slot if available
+                                if (oldSlot !== -1) {
+                                    hotbar[oldSlot] = temp;
+                                }
+                            } else {
+                                hotbar[i] = weaponId;
+                            }
+                        }
                         renderInventory();
                         setupHotbar();
                     }
@@ -3110,13 +2431,20 @@
             const allWeapons = [...inventory.ownedItems, ...generatedWeapons.map(w => w.id)];
             const uniqueWeapons = [...new Set(allWeapons)];
 
-            uniqueWeapons.forEach(weaponId => {
+            // Update inventory order
+            const newWeapons = uniqueWeapons.filter(w => !inventoryOrder.includes(w));
+            inventoryOrder = [...inventoryOrder.filter(w => uniqueWeapons.includes(w)), ...newWeapons];
+            saveInventoryOrder();
+
+            inventoryOrder.forEach((weaponId, index) => {
                 const item = itemDefs[weaponId] || generatedWeapons.find(w => w.id === weaponId);
                 if (!item) return;
 
                 const equipped = hotbar.includes(weaponId);
                 const div = document.createElement('div');
                 div.draggable = true;
+                div.setAttribute('data-weapon-id', weaponId);
+                div.setAttribute('data-inventory-index', index);
                 div.style.cssText = `
                     background: ${equipped ? 'rgba(0,255,0,0.2)' : 'rgba(255,255,255,0.05)'};
                     border: 2px solid ${equipped ? '#0f0' : '#444'};
@@ -3124,24 +2452,101 @@
                     padding: 10px;
                     text-align: center;
                     cursor: grab;
+                    transition: all 0.2s;
+                    position: relative;
                 `;
                 div.innerHTML = `
                     <div style="font-size: 24px;">${item.icon}</div>
                     <div style="color: white; font-size: 10px;">${item.name}</div>
                     <div style="color: #888; font-size: 8px;">DMG: ${item.damage || 0}</div>
-                    ${item.rarity ? `<div style="color: ${getRarityColor(item.rarity)}; font-size: 8px;">${item.rarity}</div>` : ''}
+                    ${item.rarity ? `<div style="color: ${getRarityColor(item.rarity)}; font-size: 8px;">${item.rarity.toUpperCase()}</div>` : ''}
+                    ${equipped ? '<div style="position: absolute; top: 2px; right: 2px; color: #0f0; font-size: 10px;">✓</div>' : ''}
                 `;
+
                 div.ondragstart = (e) => {
                     e.dataTransfer.setData('weaponId', weaponId);
+                    e.dataTransfer.setData('inventoryIndex', index.toString());
+                    div.style.opacity = '0.5';
                 };
-                div.onclick = () => {
-                    const emptySlot = hotbar.findIndex(s => s === null);
-                    if (emptySlot !== -1 && !equipped) {
-                        hotbar[emptySlot] = weaponId;
+
+                div.ondragend = (e) => {
+                    div.style.opacity = '1';
+                };
+
+                div.ondragover = (e) => {
+                    e.preventDefault();
+                    div.style.transform = 'scale(1.05)';
+                    div.style.borderColor = '#ff0';
+                };
+
+                div.ondragleave = (e) => {
+                    div.style.transform = '';
+                    div.style.borderColor = equipped ? '#0f0' : '#444';
+                };
+
+                div.ondrop = (e) => {
+                    e.preventDefault();
+                    div.style.transform = '';
+                    div.style.borderColor = equipped ? '#0f0' : '#444';
+
+                    const draggedWeaponId = e.dataTransfer.getData('weaponId');
+                    const draggedInventoryIndex = e.dataTransfer.getData('inventoryIndex');
+
+                    if (draggedInventoryIndex !== '' && draggedWeaponId !== weaponId) {
+                        // Reorder within inventory
+                        const fromIndex = parseInt(draggedInventoryIndex);
+                        const toIndex = index;
+
+                        const temp = inventoryOrder[fromIndex];
+                        inventoryOrder.splice(fromIndex, 1);
+                        inventoryOrder.splice(toIndex, 0, temp);
+
+                        saveInventoryOrder();
                         renderInventory();
-                        setupHotbar();
                     }
                 };
+
+                // Click to equip/unequip
+                div.onclick = () => {
+                    if (equipped) {
+                        // Unequip
+                        const slotIndex = hotbar.indexOf(weaponId);
+                        if (slotIndex !== -1) {
+                            hotbar[slotIndex] = null;
+                        }
+                    } else {
+                        // Equip to first empty slot
+                        const emptySlot = hotbar.findIndex(s => s === null);
+                        if (emptySlot !== -1) {
+                            hotbar[emptySlot] = weaponId;
+                        }
+                    }
+                    renderInventory();
+                    setupHotbar();
+                };
+
+                // Right-click context menu
+                div.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    if (equipped) {
+                        const slotIndex = hotbar.indexOf(weaponId);
+                        if (slotIndex !== -1 && confirm(`Unequip ${item.name} from slot ${slotIndex + 1}?`)) {
+                            hotbar[slotIndex] = null;
+                            renderInventory();
+                            setupHotbar();
+                        }
+                    } else {
+                        const emptySlot = hotbar.findIndex(s => s === null);
+                        if (emptySlot !== -1 && confirm(`Equip ${item.name} to slot ${emptySlot + 1}?`)) {
+                            hotbar[emptySlot] = weaponId;
+                            renderInventory();
+                            setupHotbar();
+                        } else if (emptySlot === -1) {
+                            alert('No empty hotbar slots available. Unequip a weapon first.');
+                        }
+                    }
+                };
+
                 grid.appendChild(div);
             });
 

@@ -96,9 +96,11 @@
     <div id="multiplayerLobby">
         <div class="lobby-content">
             <h2>MULTIPLAYER ARENA</h2>
-            <div class="spinner"></div>
+            <div class="spinner" id="connectionSpinner"></div>
             <div id="lobbyStatus">Connecting to server...</div>
+            <div id="connectionDetails" style="color: #888; font-size: 12px; margin: 10px 0;"></div>
             <div id="playerCount">Players: 0</div>
+            <button class="menu-btn" id="retryConnectionBtn" style="display: none; background: linear-gradient(135deg, #e74c3c, #c0392b);" onclick="retryConnection()">Retry Connection</button>
             <button class="menu-btn" onclick="leaveLobby()" style="margin-top: 20px;">Leave Lobby</button>
         </div>
     </div>
@@ -230,9 +232,9 @@
             // Bloom for glowing effects (subtle for realism)
             bloomPass = new THREE.UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.3,  // Strength - subtle
-                0.4,  // Radius
-                0.85  // Threshold - only bright things bloom
+                0.5,  // Strength - more glow
+                0.5,  // Radius - wider spread
+                0.7   // Threshold - more elements bloom
             );
             composer.addPass(bloomPass);
 
@@ -248,10 +250,10 @@
             const colorCorrectionShader = {
                 uniforms: {
                     'tDiffuse': { value: null },
-                    'saturation': { value: 1.15 },
-                    'contrast': { value: 1.1 },
-                    'brightness': { value: 0.02 },
-                    'vignetteIntensity': { value: 0.3 }
+                    'saturation': { value: 1.35 },
+                    'contrast': { value: 1.15 },
+                    'brightness': { value: 0.08 },
+                    'vignetteIntensity': { value: 0.15 }
                 },
                 vertexShader: `
                     varying vec2 vUv;
@@ -313,6 +315,14 @@
         let matchTimeRemaining = 300000; // 5 minutes
         let lastPositionSync = 0;
         let playerName = 'Player_' + Math.random().toString(36).substr(2, 4);
+
+        // Connection retry state
+        let connectionAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        const INITIAL_RECONNECT_DELAY = 1000;
+        let reconnectTimeout = null;
+        let connectionTimeout = null;
+        const CONNECTION_TIMEOUT_MS = 10000;
 
         // Particle creation functions
         function createParticles(position, color, count, speed, size, lifetime, spread = 1) {
@@ -887,7 +897,7 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.4;
+            renderer.toneMappingExposure = 1.8;
             renderer.outputEncoding = THREE.sRGBEncoding;
             renderer.physicallyCorrectLights = true;
             document.body.appendChild(renderer.domElement);
@@ -896,10 +906,10 @@
             setupPostProcessing();
             
             // Realistic lighting
-            const ambientLight = new THREE.AmbientLight(0x8899aa, 0.4);
+            const ambientLight = new THREE.AmbientLight(0x99aacc, 0.6);
             scene.add(ambientLight);
             
-            const sunLight = new THREE.DirectionalLight(0xffffeedd, 1.0);
+            const sunLight = new THREE.DirectionalLight(0xffffee, 1.2);
             sunLight.position.set(60, 100, 40);
             sunLight.castShadow = true;
             sunLight.shadow.mapSize.width = 2048;
@@ -913,7 +923,7 @@
             sunLight.shadow.bias = -0.0001;
             scene.add(sunLight);
             
-            const hemiLight = new THREE.HemisphereLight(0x88bbff, 0x445522, 0.5);
+            const hemiLight = new THREE.HemisphereLight(0x99ccff, 0x556633, 0.7);
             scene.add(hemiLight);
             
             // Ground - realistic grass with hills (higher resolution)
@@ -4523,7 +4533,41 @@
         function joinMultiplayer() {
             document.getElementById('menu').style.display = 'none';
             document.getElementById('multiplayerLobby').style.display = 'flex';
-            document.getElementById('lobbyStatus').textContent = 'Connecting to server...';
+            document.getElementById('retryConnectionBtn').style.display = 'none';
+            document.getElementById('connectionSpinner').style.display = 'block';
+            connectionAttempts = 0;
+            attemptConnection();
+        }
+
+        function attemptConnection() {
+            connectionAttempts++;
+            const statusEl = document.getElementById('lobbyStatus');
+            const detailsEl = document.getElementById('connectionDetails');
+
+            if (connectionAttempts > MAX_RECONNECT_ATTEMPTS) {
+                handleConnectionFailure('Maximum retry attempts reached.');
+                return;
+            }
+
+            statusEl.textContent = `Connecting to server... (Attempt ${connectionAttempts}/${MAX_RECONNECT_ATTEMPTS})`;
+            detailsEl.textContent = '';
+
+            // Clear any existing timeout
+            if (connectionTimeout) {
+                clearTimeout(connectionTimeout);
+                connectionTimeout = null;
+            }
+
+            // Set connection timeout
+            connectionTimeout = setTimeout(() => {
+                if (multiplayerSocket && multiplayerSocket.readyState !== WebSocket.OPEN) {
+                    console.warn('Connection timeout after 10 seconds');
+                    multiplayerSocket.close();
+                    const delay = INITIAL_RECONNECT_DELAY * Math.pow(2, connectionAttempts - 1);
+                    detailsEl.textContent = `Connection timed out. Retrying in ${delay / 1000}s...`;
+                    reconnectTimeout = setTimeout(attemptConnection, delay);
+                }
+            }, CONNECTION_TIMEOUT_MS);
 
             try {
                 // Connect to PartyKit server
@@ -4533,6 +4577,13 @@
                 });
 
                 multiplayerSocket.onopen = () => {
+                    // Clear timeout on successful connection
+                    if (connectionTimeout) {
+                        clearTimeout(connectionTimeout);
+                        connectionTimeout = null;
+                    }
+                    connectionAttempts = 0;
+                    document.getElementById('connectionDetails').textContent = '';
                     document.getElementById('lobbyStatus').textContent = 'Connected! Joining match...';
                     // Send join message
                     multiplayerSocket.send(JSON.stringify({
@@ -4553,19 +4604,53 @@
 
                 multiplayerSocket.onerror = (error) => {
                     console.error('WebSocket error:', error);
-                    document.getElementById('lobbyStatus').textContent = 'Connection error. Please try again.';
+                    // Error will trigger close, which handles retry
                 };
 
-                multiplayerSocket.onclose = () => {
+                multiplayerSocket.onclose = (event) => {
+                    // Clear connection timeout
+                    if (connectionTimeout) {
+                        clearTimeout(connectionTimeout);
+                        connectionTimeout = null;
+                    }
+
                     if (isMultiplayer) {
-                        document.getElementById('lobbyStatus').textContent = 'Disconnected from server.';
-                        setTimeout(leaveMultiplayer, 2000);
+                        // Disconnected during game - try to reconnect
+                        handleDisconnectDuringGame(event);
+                    } else if (connectionAttempts <= MAX_RECONNECT_ATTEMPTS && document.getElementById('multiplayerLobby').style.display === 'flex') {
+                        // Still in lobby, retry connection
+                        const delay = INITIAL_RECONNECT_DELAY * Math.pow(2, connectionAttempts - 1);
+                        detailsEl.textContent = `Connection lost. Retrying in ${delay / 1000}s...`;
+                        reconnectTimeout = setTimeout(attemptConnection, delay);
                     }
                 };
             } catch (e) {
                 console.error('Failed to connect:', e);
-                document.getElementById('lobbyStatus').textContent = 'Failed to connect. Please try again.';
+                handleConnectionFailure('Failed to create connection: ' + e.message);
             }
+        }
+
+        function handleConnectionFailure(message) {
+            document.getElementById('lobbyStatus').textContent = 'Connection failed';
+            document.getElementById('connectionDetails').textContent = message + ' Check your internet connection.';
+            document.getElementById('connectionSpinner').style.display = 'none';
+            document.getElementById('retryConnectionBtn').style.display = 'block';
+        }
+
+        function handleDisconnectDuringGame(event) {
+            document.getElementById('lobbyStatus').textContent = 'Disconnected from server. Reconnecting...';
+            document.getElementById('multiplayerLobby').style.display = 'flex';
+            document.getElementById('connectionSpinner').style.display = 'block';
+            document.getElementById('retryConnectionBtn').style.display = 'none';
+            connectionAttempts = 0;
+            attemptConnection();
+        }
+
+        function retryConnection() {
+            document.getElementById('retryConnectionBtn').style.display = 'none';
+            document.getElementById('connectionSpinner').style.display = 'block';
+            connectionAttempts = 0;
+            attemptConnection();
         }
 
         function handleMultiplayerMessage(data) {
@@ -5024,6 +5109,17 @@
         }
 
         function leaveLobby() {
+            // Clear any pending reconnect/timeout
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+                reconnectTimeout = null;
+            }
+            if (connectionTimeout) {
+                clearTimeout(connectionTimeout);
+                connectionTimeout = null;
+            }
+            connectionAttempts = 0;
+
             if (multiplayerSocket) {
                 multiplayerSocket.close();
                 multiplayerSocket = null;

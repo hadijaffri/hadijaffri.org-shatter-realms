@@ -250,10 +250,10 @@
             const colorCorrectionShader = {
                 uniforms: {
                     'tDiffuse': { value: null },
-                    'saturation': { value: 1.35 },
-                    'contrast': { value: 1.15 },
-                    'brightness': { value: 0.08 },
-                    'vignetteIntensity': { value: 0.15 }
+                    'saturation': { value: 1.4 },
+                    'contrast': { value: 1.12 },
+                    'brightness': { value: 0.12 },
+                    'vignetteIntensity': { value: 0.1 }
                 },
                 vertexShader: `
                     varying vec2 vUv;
@@ -306,6 +306,7 @@
 
         // Particle system
         let particles = [];
+        const MAX_PARTICLES = 150;
 
         // Multiplayer state
         let isMultiplayer = false;
@@ -326,6 +327,8 @@
 
         // Particle creation functions
         function createParticles(position, color, count, speed, size, lifetime, spread = 1) {
+            if (particles.length >= MAX_PARTICLES) return;
+            count = Math.min(count, MAX_PARTICLES - particles.length);
             for (let i = 0; i < count; i++) {
                 const geo = new THREE.SphereGeometry(size * (0.5 + Math.random() * 0.5), 6, 6);
                 const mat = new THREE.MeshBasicMaterial({
@@ -356,6 +359,8 @@
         }
 
         function createSparkParticles(position, color, count) {
+            if (particles.length >= MAX_PARTICLES) return;
+            count = Math.min(count, MAX_PARTICLES - particles.length);
             for (let i = 0; i < count; i++) {
                 const geo = new THREE.BoxGeometry(0.02, 0.15, 0.02);
                 const mat = new THREE.MeshBasicMaterial({
@@ -392,6 +397,8 @@
         }
 
         function createMagicParticles(position, color, count, size = 0.08) {
+            if (particles.length >= MAX_PARTICLES) return;
+            count = Math.min(count, MAX_PARTICLES - particles.length);
             for (let i = 0; i < count; i++) {
                 const geo = new THREE.OctahedronGeometry(size * (0.6 + Math.random() * 0.4), 0);
                 const mat = new THREE.MeshBasicMaterial({
@@ -431,13 +438,13 @@
 
         function createExplosionParticles(position, color, secondaryColor) {
             // Core explosion particles
-            createParticles(position, color, 25, 0.15, 0.12, 500, 2);
+            createParticles(position, color, 15, 0.15, 0.12, 500, 2);
             // Secondary colored particles
-            createParticles(position, secondaryColor, 15, 0.12, 0.08, 400, 1.5);
+            createParticles(position, secondaryColor, 8, 0.12, 0.08, 400, 1.5);
             // Spark trails
-            createSparkParticles(position, 0xffff00, 12);
+            createSparkParticles(position, 0xffff00, 6);
             // Smoke
-            createParticles(position, 0x444444, 10, 0.03, 0.2, 800, 0.8);
+            createParticles(position, 0x444444, 5, 0.03, 0.2, 800, 0.8);
         }
 
         function createHitParticles(position, color) {
@@ -446,13 +453,15 @@
         }
 
         function createDeathParticles(position, color) {
-            createParticles(position, color, 30, 0.08, 0.1, 600, 1.5);
-            createMagicParticles(position, 0xff0000, 15, 0.06);
-            createParticles(position, 0x220000, 20, 0.04, 0.15, 800, 1);
+            createParticles(position, color, 15, 0.08, 0.1, 600, 1.5);
+            createMagicParticles(position, 0xff0000, 8, 0.06);
+            createParticles(position, 0x220000, 10, 0.04, 0.15, 800, 1);
         }
 
         function createSlashParticles(position, direction, color) {
-            for (let i = 0; i < 12; i++) {
+            if (particles.length >= MAX_PARTICLES) return;
+            const slashCount = Math.min(12, MAX_PARTICLES - particles.length);
+            for (let i = 0; i < slashCount; i++) {
                 const geo = new THREE.PlaneGeometry(0.04, 0.25);
                 const mat = new THREE.MeshBasicMaterial({
                     color: color,
@@ -464,7 +473,7 @@
                 particle.position.copy(position);
 
                 // Arc pattern
-                const arcAngle = (i / 12) * Math.PI - Math.PI / 2;
+                const arcAngle = (i / slashCount) * Math.PI - Math.PI / 2;
                 const offset = new THREE.Vector3(
                     Math.cos(arcAngle) * 0.3,
                     Math.sin(arcAngle) * 0.3,
@@ -494,6 +503,7 @@
         }
 
         function createProjectileTrail(position, color) {
+            if (particles.length >= MAX_PARTICLES) return;
             const geo = new THREE.SphereGeometry(0.06, 4, 4);
             const mat = new THREE.MeshBasicMaterial({
                 color: color,
@@ -566,6 +576,57 @@
         // Inventory
         const inventory = { coins: 100, ownedItems: ['sword', 'fireball'] };
 
+        // Save inventory to cookie as fallback
+        function saveInventoryToCookie() {
+            const data = JSON.stringify({
+                coins: inventory.coins,
+                ownedItems: inventory.ownedItems
+            });
+            setCookie('inventory', data);
+        }
+
+        // Load inventory from cookie
+        function loadInventoryFromCookie() {
+            const saved = getCookie('inventory');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.coins !== undefined) inventory.coins = data.coins;
+                    if (data.ownedItems && data.ownedItems.length > 0) {
+                        inventory.ownedItems = data.ownedItems;
+                    }
+                    return true;
+                } catch (e) {
+                    console.log('Could not parse inventory cookie');
+                }
+            }
+            return false;
+        }
+
+        // Save generated weapons to cookie
+        function saveWeaponsToCookie() {
+            try {
+                const weapons = localStorage.getItem('generatedWeapons') || '[]';
+                setCookie('generatedWeapons', weapons);
+                const hotbarState = localStorage.getItem('hotbarState') || '[]';
+                setCookie('hotbarState', hotbarState);
+            } catch (e) {
+                console.log('Could not save weapons to cookie');
+            }
+        }
+
+        // Load generated weapons from cookie fallback
+        function loadWeaponsFromCookie() {
+            const weapons = getCookie('generatedWeapons');
+            if (weapons && !localStorage.getItem('generatedWeapons')) {
+                localStorage.setItem('generatedWeapons', weapons);
+            }
+            const hotbarState = getCookie('hotbarState');
+            if (hotbarState && !localStorage.getItem('hotbarState')) {
+                localStorage.setItem('hotbarState', hotbarState);
+            }
+        }
+
         // Cloud save functions
         async function loadFromCloud() {
             try {
@@ -584,16 +645,35 @@
                         setupHotbar();
                     }
                 }
+                // Save to cookie as backup
+                saveInventoryToCookie();
                 document.getElementById('menuCoins').textContent = '💰 ' + inventory.coins;
                 document.getElementById('coinsDisplay').textContent = '💰 ' + inventory.coins;
                 console.log('Loaded from cloud:', inventory);
                 console.log('Hotbar updated:', hotbar);
             } catch (e) {
-                console.log('Could not load from cloud, using defaults');
+                console.log('Could not load from cloud, trying cookie fallback');
+                if (loadInventoryFromCookie()) {
+                    hotbar = [null, null, null, null, null, null];
+                    for (let i = 0; i < Math.min(inventory.ownedItems.length, 6); i++) {
+                        hotbar[i] = inventory.ownedItems[i];
+                    }
+                    if (document.getElementById('hotbar')) {
+                        setupHotbar();
+                    }
+                    document.getElementById('menuCoins').textContent = '💰 ' + inventory.coins;
+                    document.getElementById('coinsDisplay').textContent = '💰 ' + inventory.coins;
+                    console.log('Loaded from cookie:', inventory);
+                }
             }
+            // Restore weapons from cookie if localStorage is empty
+            loadWeaponsFromCookie();
         }
 
         async function saveToCloud() {
+            // Always save to cookie as backup
+            saveInventoryToCookie();
+            saveWeaponsToCookie();
             try {
                 await fetch('/api/save', {
                     method: 'POST',
@@ -605,7 +685,7 @@
                 });
                 console.log('Saved to cloud:', inventory);
             } catch (e) {
-                console.log('Could not save to cloud');
+                console.log('Could not save to cloud, saved to cookie');
             }
         }
 
@@ -886,18 +966,18 @@
             
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x7ec8e3);
-            scene.fog = new THREE.FogExp2(0x7ec8e3, 0.006);
+            scene.fog = new THREE.FogExp2(0x7ec8e3, 0.004);
             
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
             camera.position.copy(playerState.position);
             
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, deviceMode === 'mobile' ? 1.5 : 2));
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.8;
+            renderer.toneMappingExposure = 2.2;
             renderer.outputEncoding = THREE.sRGBEncoding;
             renderer.physicallyCorrectLights = true;
             document.body.appendChild(renderer.domElement);
@@ -906,14 +986,15 @@
             setupPostProcessing();
             
             // Realistic lighting
-            const ambientLight = new THREE.AmbientLight(0x99aacc, 0.6);
+            const ambientLight = new THREE.AmbientLight(0xbbccee, 0.8);
             scene.add(ambientLight);
             
-            const sunLight = new THREE.DirectionalLight(0xffffee, 1.2);
+            const sunLight = new THREE.DirectionalLight(0xffffee, 1.5);
             sunLight.position.set(60, 100, 40);
             sunLight.castShadow = true;
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
+            const shadowRes = deviceMode === 'mobile' ? 1024 : 2048;
+            sunLight.shadow.mapSize.width = shadowRes;
+            sunLight.shadow.mapSize.height = shadowRes;
             sunLight.shadow.camera.near = 10;
             sunLight.shadow.camera.far = 250;
             sunLight.shadow.camera.left = -60;
@@ -923,7 +1004,7 @@
             sunLight.shadow.bias = -0.0001;
             scene.add(sunLight);
             
-            const hemiLight = new THREE.HemisphereLight(0x99ccff, 0x556633, 0.7);
+            const hemiLight = new THREE.HemisphereLight(0xaaddff, 0x667744, 0.9);
             scene.add(hemiLight);
             
             // Ground - realistic grass with hills (higher resolution)
@@ -3817,7 +3898,7 @@
             // Apply type-specific scale
             enemyGroup.scale.setScalar(type.scale);
 
-            enemyGroup.position.set(x, terrainY, z);
+            enemyGroup.position.set(x, terrainY + 0.4, z);
             scene.add(enemyGroup);
 
             const baseHealth = 30 * (1 + currentWave * 0.08);
@@ -3925,7 +4006,7 @@
             rightLeg.position.set(0.3, 0.45, 0);
             bossGroup.add(rightLeg);
             
-            bossGroup.position.set(x, terrainY, z);
+            bossGroup.position.set(x, terrainY + 0.45, z);
             scene.add(bossGroup);
             
             boss = {
@@ -4317,7 +4398,7 @@
                 
                 // Update Y position to terrain height (with offset to prevent leg clipping)
                 const terrainY = getTerrainHeight(e.mesh.position.x, e.mesh.position.z);
-                e.mesh.position.y = terrainY + 0.15;
+                e.mesh.position.y = terrainY + 0.4;
                 
                 // Animate arms and legs while moving
                 if (isMoving && e.leftArm && e.rightArm && e.leftLeg && e.rightLeg) {
@@ -4368,7 +4449,7 @@
             
             // Update Y position to terrain height (with offset to prevent leg clipping)
             const terrainY = getTerrainHeight(boss.mesh.position.x, boss.mesh.position.z);
-            boss.mesh.position.y = terrainY + 0.25;
+            boss.mesh.position.y = terrainY + 0.45;
             
             // Animate arms and legs
             if (isMoving && boss.leftArm && boss.rightArm && boss.leftLeg && boss.rightLeg) {
@@ -4888,7 +4969,7 @@
         }
 
         function syncPositionToServer() {
-            if (!multiplayerSocket || !isMultiplayer || !gameRunning) return;
+            if (!multiplayerSocket || !isMultiplayer || !gameRunning || multiplayerSocket.readyState !== WebSocket.OPEN) return;
 
             const now = Date.now();
             if (now - lastPositionSync < 50) return; // 20 updates per second
@@ -4907,7 +4988,7 @@
         }
 
         function sendMultiplayerAttack() {
-            if (!multiplayerSocket || !isMultiplayer) return;
+            if (!multiplayerSocket || !isMultiplayer || multiplayerSocket.readyState !== WebSocket.OPEN) return;
 
             const dir = new THREE.Vector3();
             camera.getWorldDirection(dir);
@@ -4955,11 +5036,13 @@
                     }
 
                     // Send damage to server
-                    multiplayerSocket.send(JSON.stringify({
-                        type: 'damage',
-                        targetId: playerId,
-                        damage: damage
-                    }));
+                    if (multiplayerSocket && multiplayerSocket.readyState === WebSocket.OPEN) {
+                        multiplayerSocket.send(JSON.stringify({
+                            type: 'damage',
+                            targetId: playerId,
+                            damage: damage
+                        }));
+                    }
                 }
             }
         }
@@ -5029,7 +5112,7 @@
             document.body.appendChild(overlay);
 
             setTimeout(() => {
-                if (multiplayerSocket && isMultiplayer) {
+                if (multiplayerSocket && isMultiplayer && multiplayerSocket.readyState === WebSocket.OPEN) {
                     multiplayerSocket.send(JSON.stringify({ type: 'respawn' }));
                 }
             }, 3000);
@@ -5075,6 +5158,17 @@
         function leaveMultiplayer() {
             isMultiplayer = false;
             gameRunning = false;
+
+            // Clear any pending reconnect/timeout
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+                reconnectTimeout = null;
+            }
+            if (connectionTimeout) {
+                clearTimeout(connectionTimeout);
+                connectionTimeout = null;
+            }
+            connectionAttempts = 0;
 
             if (multiplayerSocket) {
                 multiplayerSocket.close();

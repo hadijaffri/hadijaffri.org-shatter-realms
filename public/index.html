@@ -100,8 +100,10 @@
             <div id="lobbyStatus">Connecting to server...</div>
             <div id="connectionDetails" style="color: #888; font-size: 12px; margin: 10px 0;"></div>
             <div id="playerCount">Players: 0</div>
-            <button class="menu-btn" id="retryConnectionBtn" style="display: none; background: linear-gradient(135deg, #e74c3c, #c0392b);" onclick="retryConnection()">Retry Connection</button>
-            <button class="menu-btn" onclick="leaveLobby()" style="margin-top: 20px;">Leave Lobby</button>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px;">
+                <button class="menu-btn" id="retryConnectionBtn" style="display: none; background: linear-gradient(135deg, #e74c3c, #c0392b); width: 200px;" onclick="retryConnection()">Retry Connection</button>
+                <button class="menu-btn" onclick="leaveLobby()" style="width: 200px;">Leave Lobby</button>
+            </div>
         </div>
     </div>
 
@@ -163,7 +165,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://unpkg.com/partysocket@0.0.25/dist/index.global.js"></script>
     <!-- Post-processing for hyper-realistic graphics -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
@@ -250,10 +251,10 @@
             const colorCorrectionShader = {
                 uniforms: {
                     'tDiffuse': { value: null },
-                    'saturation': { value: 1.4 },
-                    'contrast': { value: 1.12 },
-                    'brightness': { value: 0.12 },
-                    'vignetteIntensity': { value: 0.1 }
+                    'saturation': { value: 1.2 },
+                    'contrast': { value: 1.1 },
+                    'brightness': { value: 0.05 },
+                    'vignetteIntensity': { value: 0.2 }
                 },
                 vertexShader: `
                     varying vec2 vUv;
@@ -966,7 +967,7 @@
             
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x7ec8e3);
-            scene.fog = new THREE.FogExp2(0x7ec8e3, 0.004);
+            scene.fog = new THREE.FogExp2(0x7ec8e3, 0.005);
             
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
             camera.position.copy(playerState.position);
@@ -977,7 +978,7 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 2.2;
+            renderer.toneMappingExposure = 1.6;
             renderer.outputEncoding = THREE.sRGBEncoding;
             renderer.physicallyCorrectLights = true;
             document.body.appendChild(renderer.domElement);
@@ -986,10 +987,10 @@
             setupPostProcessing();
             
             // Realistic lighting
-            const ambientLight = new THREE.AmbientLight(0xbbccee, 0.8);
+            const ambientLight = new THREE.AmbientLight(0x99aacc, 0.5);
             scene.add(ambientLight);
             
-            const sunLight = new THREE.DirectionalLight(0xffffee, 1.5);
+            const sunLight = new THREE.DirectionalLight(0xffffee, 1.1);
             sunLight.position.set(60, 100, 40);
             sunLight.castShadow = true;
             const shadowRes = deviceMode === 'mobile' ? 1024 : 2048;
@@ -1004,7 +1005,7 @@
             sunLight.shadow.bias = -0.0001;
             scene.add(sunLight);
             
-            const hemiLight = new THREE.HemisphereLight(0xaaddff, 0x667744, 0.9);
+            const hemiLight = new THREE.HemisphereLight(0x99ccff, 0x556633, 0.6);
             scene.add(hemiLight);
             
             // Ground - realistic grass with hills (higher resolution)
@@ -4651,11 +4652,8 @@
             }, CONNECTION_TIMEOUT_MS);
 
             try {
-                // Connect to PartyKit server
-                multiplayerSocket = new PartySocket({
-                    host: 'game.hadijaffri.partykit.dev',
-                    room: 'arena-main'
-                });
+                // Connect to PartyKit server via native WebSocket
+                multiplayerSocket = new WebSocket('wss://game.hadijaffri.partykit.dev/parties/main/arena-main');
 
                 multiplayerSocket.onopen = () => {
                     // Clear timeout on successful connection

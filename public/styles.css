@@ -741,6 +741,15 @@
         #gameOver h1 { font-size: 38px; color: #ff4444; margin-bottom: 12px; }
         #gameOver p { color: #fff; font-size: 14px; margin: 4px 0; }
         
+        #playerNameInput:focus {
+            outline: none;
+            border-color: gold;
+        }
+
+        #chatInput:focus {
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
         .mobile-mode #hud { bottom: 150px; left: 8px; }
         .mobile-mode .bar-container { width: 140px; height: 16px; }
         .mobile-mode #hotbar { bottom: 75px; transform: translateX(-50%) scale(0.8); }

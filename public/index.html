@@ -96,6 +96,11 @@
     <div id="multiplayerLobby">
         <div class="lobby-content">
             <h2>MULTIPLAYER ARENA</h2>
+            <div style="margin-bottom: 15px;">
+                <label for="playerNameInput" style="color: #aaa; font-size: 12px; display: block; margin-bottom: 5px;">Player Name</label>
+                <input type="text" id="playerNameInput" maxlength="20" placeholder="Enter your name..." style="padding: 8px 12px; font-size: 14px; border: 2px solid #444; border-radius: 8px; background: #222; color: white; text-align: center; width: 200px;">
+                <div id="nameWarning" style="color: #ff6600; font-size: 11px; margin-top: 5px; display: none;"></div>
+            </div>
             <div class="spinner" id="connectionSpinner"></div>
             <div id="lobbyStatus">Connecting to server...</div>
             <div id="connectionDetails" style="color: #888; font-size: 12px; margin: 10px 0;"></div>
@@ -113,6 +118,14 @@
         <div id="scoreboard" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 2px solid gold; border-radius: 15px; padding: 20px; z-index: 300; min-width: 400px;">
             <h2 style="color: gold; text-align: center; margin-bottom: 15px;">SCOREBOARD</h2>
             <div id="scoreboardContent"></div>
+        </div>
+    </div>
+
+    <div id="chatContainer" style="display: none; position: fixed; bottom: 70px; left: 15px; width: 350px; z-index: 150; pointer-events: none;">
+        <div id="chatMessages" style="max-height: 200px; overflow: hidden; display: flex; flex-direction: column; gap: 2px;"></div>
+        <div id="chatHint" style="color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 5px;">Press T to chat</div>
+        <div id="chatInputContainer" style="display: none; margin-top: 5px; pointer-events: auto;">
+            <input type="text" id="chatInput" maxlength="200" placeholder="Type a message..." style="width: 100%; padding: 6px 10px; font-size: 12px; border: 1px solid rgba(255,255,255,0.3); border-radius: 5px; background: rgba(0,0,0,0.8); color: white; outline: none;">
         </div>
     </div>
 
@@ -2341,17 +2354,32 @@
         }
 
         // Check if user just completed a payment
-        function checkPaymentSuccess() {
+        async function checkPaymentSuccess() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('success') === 'true') {
-                const coinsToAdd = parseInt(urlParams.get('coins'));
-                if (coinsToAdd) {
-                    inventory.coins += coinsToAdd;
-                    saveCoinsToCloud();
-                    alert(`Payment successful! ${coinsToAdd} coins have been added to your account!`);
-                    // Clean up URL
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                const sessionId = urlParams.get('session_id');
+                if (sessionId) {
+                    try {
+                        const response = await fetch('/api/verify-session', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sessionId })
+                        });
+                        const data = await response.json();
+                        if (data.coins) {
+                            inventory.coins += data.coins;
+                            saveCoinsToCloud();
+                            alert(`Payment successful! ${data.coins} coins have been added to your account!`);
+                        } else {
+                            alert('Payment verification failed. Please contact support.');
+                        }
+                    } catch (error) {
+                        console.error('Payment verification error:', error);
+                        alert('Could not verify payment. Please contact support.');
+                    }
                 }
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
             } else if (urlParams.get('canceled') === 'true') {
                 alert('Payment was canceled');
                 window.history.replaceState({}, document.title, window.location.pathname);
@@ -2405,12 +2433,18 @@
                 });
 
                 const data = await response.json();
-                if (data.price) {
+                if (data.price && data.url) {
                     currentAIPrice = data;
                     document.getElementById('priceDisplay').textContent = `$${data.price.toFixed(2)} for ${coins} coins`;
                     document.getElementById('priceDisplay').style.color = '#00ff00';
                     document.getElementById('aiReasoning').textContent = data.reasoning || '';
                     document.getElementById('buyCoinsBtn').disabled = false;
+                } else if (data.price && !data.url) {
+                    currentAIPrice = null;
+                    document.getElementById('priceDisplay').textContent = data.stripeError || 'Payment temporarily unavailable';
+                    document.getElementById('priceDisplay').style.color = '#ff6600';
+                    document.getElementById('aiReasoning').textContent = '';
+                    document.getElementById('buyCoinsBtn').disabled = true;
                 } else {
                     document.getElementById('priceDisplay').textContent = 'Error calculating price';
                     document.getElementById('priceDisplay').style.color = '#ff0000';
@@ -2847,12 +2881,31 @@
         
         function setupInput() {
             document.addEventListener('keydown', (e) => {
+                // Block game input while chat is open
+                if (isChatOpen) {
+                    if (e.code === 'Enter') {
+                        sendChatMessage();
+                    } else if (e.code === 'Escape') {
+                        closeChatInput();
+                    }
+                    return;
+                }
+
                 keys[e.code] = true;
                 if (e.code >= 'Digit1' && e.code <= 'Digit6') {
                     selectSlot(parseInt(e.code.replace('Digit', '')) - 1);
                 }
+
+                // Open chat with T key in multiplayer
+                if (e.code === 'KeyT' && isMultiplayer && gameRunning) {
+                    e.preventDefault();
+                    openChatInput();
+                }
             });
-            document.addEventListener('keyup', (e) => { keys[e.code] = false; });
+            document.addEventListener('keyup', (e) => {
+                if (isChatOpen) return;
+                keys[e.code] = false;
+            });
             
             if (deviceMode === 'computer') setupComputerControls();
             else setupMobileControls();
@@ -4612,7 +4665,42 @@
 
         // ========== MULTIPLAYER FUNCTIONS ==========
 
-        function joinMultiplayer() {
+        async function joinMultiplayer() {
+            // Process player name from input
+            const nameInput = document.getElementById('playerNameInput');
+            const nameWarning = document.getElementById('nameWarning');
+            let rawName = (nameInput.value || '').trim();
+
+            // Sanitize HTML special characters
+            rawName = rawName.replace(/[<>&"']/g, '');
+
+            if (rawName.length > 0) {
+                try {
+                    const filterResponse = await fetch('/api/filter-chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: rawName })
+                    });
+                    const filterData = await filterResponse.json();
+                    if (filterData.wasCensored) {
+                        nameWarning.textContent = 'Name contained inappropriate content and was modified.';
+                        nameWarning.style.display = 'block';
+                        playerName = filterData.filtered;
+                    } else {
+                        playerName = filterData.filtered;
+                        nameWarning.style.display = 'none';
+                    }
+                } catch (_e) {
+                    playerName = rawName;
+                    nameWarning.style.display = 'none';
+                }
+            } else {
+                playerName = 'Player_' + Math.random().toString(36).substr(2, 4);
+                nameWarning.style.display = 'none';
+            }
+
+            nameInput.value = playerName;
+
             document.getElementById('menu').style.display = 'none';
             document.getElementById('multiplayerLobby').style.display = 'flex';
             document.getElementById('retryConnectionBtn').style.display = 'none';
@@ -4813,6 +4901,14 @@
                 case 'match_end':
                     endMultiplayerMatch(data);
                     break;
+
+                case 'chat':
+                    addChatMessage(data.playerName, data.message, data.playerId === myPlayerId ? '#88ccff' : '#ffcc00');
+                    break;
+
+                case 'chat_error':
+                    addChatMessage('System', data.message, '#ff4444');
+                    break;
             }
         }
 
@@ -4829,6 +4925,7 @@
             document.getElementById('minimap').style.display = 'block';
 
             setupInput();
+            showChatContainer();
 
             if (deviceMode === 'mobile') {
                 document.getElementById('mobileControls').style.display = 'block';
@@ -5183,6 +5280,7 @@
             document.getElementById('multiplayerLobby').style.display = 'none';
             document.getElementById('multiplayerHUD').style.display = 'none';
             document.getElementById('matchEndScreen').style.display = 'none';
+            hideChatContainer();
             hideDeathScreen();
 
             // Show menu
@@ -5218,6 +5316,111 @@
             }
             document.getElementById('multiplayerLobby').style.display = 'none';
             document.getElementById('menu').style.display = 'flex';
+        }
+
+        // ========== CHAT SYSTEM ==========
+        let isChatOpen = false;
+        const MAX_VISIBLE_MESSAGES = 20;
+        const MESSAGE_FADE_TIME = 10000;
+
+        function openChatInput() {
+            isChatOpen = true;
+            const container = document.getElementById('chatInputContainer');
+            const input = document.getElementById('chatInput');
+            container.style.display = 'block';
+            document.getElementById('chatHint').style.display = 'none';
+            input.value = '';
+            input.focus();
+
+            // Release pointer lock while typing
+            if (document.exitPointerLock) document.exitPointerLock();
+
+            // Clear movement keys to stop player from running
+            Object.keys(keys).forEach(k => { keys[k] = false; });
+        }
+
+        function closeChatInput() {
+            isChatOpen = false;
+            const container = document.getElementById('chatInputContainer');
+            container.style.display = 'none';
+            document.getElementById('chatHint').style.display = 'block';
+
+            // Re-engage pointer lock
+            if (deviceMode === 'computer' && renderer && renderer.domElement) {
+                renderer.domElement.requestPointerLock();
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = (input.value || '').trim();
+            closeChatInput();
+
+            if (!message || !multiplayerSocket || multiplayerSocket.readyState !== WebSocket.OPEN) return;
+
+            try {
+                const response = await fetch('/api/filter-chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await response.json();
+                const filtered = data.filtered || message;
+
+                multiplayerSocket.send(JSON.stringify({
+                    type: 'chat',
+                    message: filtered
+                }));
+            } catch (_e) {
+                // If filter fails, send original
+                multiplayerSocket.send(JSON.stringify({
+                    type: 'chat',
+                    message: message.slice(0, 200)
+                }));
+            }
+        }
+
+        function addChatMessage(playerNameStr, message, color) {
+            const container = document.getElementById('chatMessages');
+            if (!container) return;
+
+            const div = document.createElement('div');
+            div.style.cssText = 'background: rgba(0,0,0,0.6); padding: 3px 8px; border-radius: 4px; font-size: 12px; pointer-events: none;';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.style.cssText = `color: ${color || '#ffcc00'}; font-weight: bold;`;
+            nameSpan.textContent = playerNameStr + ': ';
+
+            const msgSpan = document.createElement('span');
+            msgSpan.style.color = '#fff';
+            msgSpan.textContent = message;
+
+            div.appendChild(nameSpan);
+            div.appendChild(msgSpan);
+            container.appendChild(div);
+
+            // Fade out after MESSAGE_FADE_TIME
+            setTimeout(() => {
+                div.style.transition = 'opacity 1s';
+                div.style.opacity = '0';
+                setTimeout(() => div.remove(), 1000);
+            }, MESSAGE_FADE_TIME);
+
+            // Keep max visible messages
+            while (container.children.length > MAX_VISIBLE_MESSAGES) {
+                container.removeChild(container.firstChild);
+            }
+        }
+
+        function showChatContainer() {
+            const container = document.getElementById('chatContainer');
+            if (container) container.style.display = 'block';
+        }
+
+        function hideChatContainer() {
+            const container = document.getElementById('chatContainer');
+            if (container) container.style.display = 'none';
+            if (isChatOpen) closeChatInput();
         }
 
         // ========== END MULTIPLAYER FUNCTIONS ==========

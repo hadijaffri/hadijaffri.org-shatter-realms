@@ -101,7 +101,7 @@ const server = http.createServer((req, res) => {
             },
           ],
           mode: 'payment',
-          success_url: `http://localhost:${PORT}/?success=true&coins=${pack.coins}`,
+          success_url: `http://localhost:${PORT}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `http://localhost:${PORT}/?canceled=true`,
           metadata: {
             coins: pack.coins,
@@ -114,6 +114,46 @@ const server = http.createServer((req, res) => {
         console.error('Stripe error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
+  if (req.url === '/api/verify-session' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => (body += chunk));
+    req.on('end', async () => {
+      try {
+        const { sessionId } = JSON.parse(body);
+
+        if (!sessionId || typeof sessionId !== 'string') {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing or invalid session ID' }));
+          return;
+        }
+
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+        if (session.payment_status !== 'paid') {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Payment not completed' }));
+          return;
+        }
+
+        const coins = parseInt(session.metadata.coins, 10);
+
+        if (!coins || coins <= 0) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid coin metadata' }));
+          return;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ coins }));
+      } catch (error) {
+        console.error('Session verification error:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid session' }));
       }
     });
     return;

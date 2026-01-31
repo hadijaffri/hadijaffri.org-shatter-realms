@@ -1,7 +1,8 @@
 // Vercel Serverless Function for Stripe Checkout
+import Stripe from 'stripe';
 import { setCorsHeaders, handleOptions } from './_lib/cors.js';
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
         },
       ],
       mode: 'payment',
-      success_url: `${baseUrl}/?success=true&coins=${pack.coins}`,
+      success_url: `${baseUrl}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/?canceled=true`,
       metadata: {
         coins: pack.coins,

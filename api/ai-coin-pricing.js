@@ -90,7 +90,7 @@ export default async function handler(req, res) {
           },
         ],
         mode: 'payment',
-        success_url: `${req.headers.origin || 'https://i-like-mangos.vercel.app'}?success=true&coins=${coins}`,
+        success_url: `${req.headers.origin || 'https://i-like-mangos.vercel.app'}?success=true&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${req.headers.origin || 'https://i-like-mangos.vercel.app'}?canceled=true`,
         metadata: {
           coins: coins.toString(),

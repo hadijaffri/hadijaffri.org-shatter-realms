@@ -34,6 +34,11 @@ export default class GameServer implements Party.Server {
 
   lastTimerUpdate: number = 0;
 
+  // Chat rate limiting: track timestamps of recent messages per player
+  chatRateLimit: Record<string, number[]> = {};
+  static CHAT_RATE_MAX = 5;
+  static CHAT_RATE_WINDOW = 10000; // 10 seconds
+
   async onStart() {
     // Load state from storage
     const savedState = await this.room.storage.get<GameState>('gameState');
@@ -52,6 +57,9 @@ export default class GameServer implements Party.Server {
   }
 
   async onClose(conn: Party.Connection) {
+    // Clean up rate limit state
+    delete this.chatRateLimit[conn.id];
+
     // Remove player from state
     const player = this.state.players[conn.id];
     if (player) {
@@ -92,6 +100,9 @@ export default class GameServer implements Party.Server {
           break;
         case 'respawn':
           await this.handleRespawn(sender);
+          break;
+        case 'chat':
+          this.handleChat(sender, data);
           break;
       }
     } catch (e) {
@@ -219,6 +230,47 @@ export default class GameServer implements Party.Server {
       }
       await this.saveState();
     }
+  }
+
+  handleChat(conn: Party.Connection, data: any) {
+    const player = this.state.players[conn.id];
+    if (!player) return;
+
+    const message = data.message;
+    if (!message || typeof message !== 'string' || message.length === 0) return;
+
+    // Rate limiting
+    const now = Date.now();
+    if (!this.chatRateLimit[conn.id]) {
+      this.chatRateLimit[conn.id] = [];
+    }
+
+    // Remove timestamps outside the window
+    this.chatRateLimit[conn.id] = this.chatRateLimit[conn.id].filter(
+      t => now - t < GameServer.CHAT_RATE_WINDOW
+    );
+
+    if (this.chatRateLimit[conn.id].length >= GameServer.CHAT_RATE_MAX) {
+      conn.send(
+        JSON.stringify({
+          type: 'chat_error',
+          message: 'You are sending messages too fast. Please wait.',
+        })
+      );
+      return;
+    }
+
+    this.chatRateLimit[conn.id].push(now);
+
+    // Broadcast chat message to all players
+    this.room.broadcast(
+      JSON.stringify({
+        type: 'chat',
+        playerId: conn.id,
+        playerName: player.name,
+        message: message.slice(0, 200),
+      })
+    );
   }
 
   async handleRespawn(conn: Party.Connection) {
@@ -365,6 +417,7 @@ export default class GameServer implements Party.Server {
       winner: null,
     };
     this.lastTimerUpdate = 0;
+    this.chatRateLimit = {};
     await this.saveState();
   }
 }

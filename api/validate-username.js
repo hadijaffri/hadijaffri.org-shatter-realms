@@ -33,6 +33,54 @@ export default async function handler(req, res) {
       });
     }
 
+    // Server-side profanity blocklist
+    const blockedWords = [
+      'admin',
+      'moderator',
+      'staff',
+      'fuck',
+      'shit',
+      'ass',
+      'dick',
+      'cock',
+      'pussy',
+      'bitch',
+      'nigger',
+      'nigga',
+      'faggot',
+      'retard',
+      'whore',
+      'slut',
+      'cunt',
+      'porn',
+      'sex',
+      'rape',
+      'nazi',
+      'hitler',
+      'kill',
+      'murder',
+      'suicide',
+      'drug',
+      'weed',
+      'cocaine',
+    ];
+    const lower = trimmed.toLowerCase();
+    const normalized = lower
+      .replace(/0/g, 'o')
+      .replace(/1/g, 'i')
+      .replace(/3/g, 'e')
+      .replace(/4/g, 'a')
+      .replace(/5/g, 's')
+      .replace(/7/g, 't')
+      .replace(/@/g, 'a')
+      .replace(/\$/g, 's');
+    const hasBlocked = blockedWords.some(w => normalized.includes(w) || lower.includes(w));
+    if (hasBlocked) {
+      return res
+        .status(200)
+        .json({ valid: false, reason: 'Username contains inappropriate content.' });
+    }
+
     // If Anthropic API key is set, use Claude to check appropriateness
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (apiKey) {

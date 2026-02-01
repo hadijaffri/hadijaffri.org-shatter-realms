@@ -78,6 +78,53 @@ function generateSessionToken(): string {
   return bufferToHex(bytes);
 }
 
+// Server-side profanity blocklist for usernames
+const BLOCKED_WORDS = [
+  'admin',
+  'moderator',
+  'staff',
+  'fuck',
+  'shit',
+  'ass',
+  'dick',
+  'cock',
+  'pussy',
+  'bitch',
+  'nigger',
+  'nigga',
+  'faggot',
+  'retard',
+  'whore',
+  'slut',
+  'cunt',
+  'porn',
+  'sex',
+  'rape',
+  'nazi',
+  'hitler',
+  'kill',
+  'murder',
+  'suicide',
+  'drug',
+  'weed',
+  'cocaine',
+];
+
+function containsBlockedWord(username: string): boolean {
+  const lower = username.toLowerCase();
+  // Also check with common l33t substitutions
+  const normalized = lower
+    .replace(/0/g, 'o')
+    .replace(/1/g, 'i')
+    .replace(/3/g, 'e')
+    .replace(/4/g, 'a')
+    .replace(/5/g, 's')
+    .replace(/7/g, 't')
+    .replace(/@/g, 'a')
+    .replace(/\$/g, 's');
+  return BLOCKED_WORDS.some(word => normalized.includes(word) || lower.includes(word));
+}
+
 export default class SocialServer implements Party.Server {
   constructor(readonly room: Party.Room) {}
 
@@ -165,6 +212,14 @@ export default class SocialServer implements Party.Server {
           type: 'auth_error',
           message: 'Username can only contain letters, numbers, and underscores.',
         })
+      );
+      return;
+    }
+
+    // Check profanity blocklist
+    if (containsBlockedWord(username)) {
+      conn.send(
+        JSON.stringify({ type: 'auth_error', message: 'Username contains inappropriate content.' })
       );
       return;
     }

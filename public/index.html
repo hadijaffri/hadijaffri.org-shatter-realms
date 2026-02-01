@@ -5781,7 +5781,7 @@
             connectToSocialServerForAuth('login', { username, password, deviceId });
         }
 
-        function submitSignup() {
+        async function submitSignup() {
             const username = (document.getElementById('signupUsername').value || '').trim();
             const password = document.getElementById('signupPassword').value || '';
             const confirmPassword = document.getElementById('signupConfirmPassword').value || '';
@@ -5810,8 +5810,49 @@
                 return;
             }
 
+            // Validate username appropriateness before creating account
             spinner.style.display = 'block';
+            try {
+                const validateResp = await fetch('/api/validate-username', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const validateData = await validateResp.json();
+                if (!validateData.valid) {
+                    spinner.style.display = 'none';
+                    errorEl.textContent = validateData.reason || 'Username is not appropriate.';
+                    return;
+                }
+            } catch (_e) {
+                // If validation service is down, allow signup with basic validation only
+                console.error('Username validation service unavailable, proceeding with basic validation');
+            }
+
             connectToSocialServerForAuth('signup', { username, password, deviceId });
+        }
+
+        let authTimeout = null;
+
+        function authConnectionFailed(action, message) {
+            const loginSpinner = document.getElementById('loginSpinner');
+            const signupSpinner = document.getElementById('signupSpinner');
+            if (loginSpinner) loginSpinner.style.display = 'none';
+            if (signupSpinner) signupSpinner.style.display = 'none';
+            if (authTimeout) { clearTimeout(authTimeout); authTimeout = null; }
+
+            if (action === 'check_auth') {
+                // Auto-login failed - clear stale cookies and show auth modal
+                isAuthenticated = false;
+                authToken = null;
+                authenticatedUsername = null;
+                setCookie('authToken', '', -1);
+                setCookie('authUsername', '', -1);
+                showAuthModal();
+            } else {
+                const errorEl = document.getElementById(action === 'login' ? 'loginError' : 'signupError');
+                if (errorEl) errorEl.textContent = message || 'Connection error. Please try again.';
+            }
         }
 
         function connectToSocialServerForAuth(action, credentials) {
@@ -5820,6 +5861,18 @@
                 try { socialSocket.close(); } catch (_e) { /* ignore */ }
                 socialSocket = null;
             }
+            if (authTimeout) { clearTimeout(authTimeout); authTimeout = null; }
+
+            // Timeout: if no response in 10 seconds, treat as failure
+            authTimeout = setTimeout(() => {
+                authTimeout = null;
+                console.error('Auth connection timed out for action:', action);
+                if (socialSocket) {
+                    try { socialSocket.close(); } catch (_e) { /* ignore */ }
+                    socialSocket = null;
+                }
+                authConnectionFailed(action, 'Connection timed out. Please try again.');
+            }, 10000);
 
             try {
                 socialSocket = new WebSocket('wss://game.hadijaffri.partykit.dev/parties/social/social-hub');
@@ -5832,6 +5885,7 @@
                 };
 
                 socialSocket.onmessage = (event) => {
+                    if (authTimeout) { clearTimeout(authTimeout); authTimeout = null; }
                     try {
                         const data = JSON.parse(event.data);
                         if (data.type === 'auth_success' || data.type === 'auth_error' || data.type === 'auth_expired') {
@@ -5845,13 +5899,7 @@
                 };
 
                 socialSocket.onerror = () => {
-                    const loginSpinner = document.getElementById('loginSpinner');
-                    const signupSpinner = document.getElementById('signupSpinner');
-                    if (loginSpinner) loginSpinner.style.display = 'none';
-                    if (signupSpinner) signupSpinner.style.display = 'none';
-
-                    const errorEl = document.getElementById(action === 'login' ? 'loginError' : 'signupError');
-                    if (errorEl) errorEl.textContent = 'Connection error. Please try again.';
+                    authConnectionFailed(action, 'Connection error. Please try again.');
                 };
 
                 socialSocket.onclose = () => {
@@ -5862,14 +5910,12 @@
                 };
             } catch (e) {
                 console.error('Failed to connect for auth:', e);
-                const loginSpinner = document.getElementById('loginSpinner');
-                const signupSpinner = document.getElementById('signupSpinner');
-                if (loginSpinner) loginSpinner.style.display = 'none';
-                if (signupSpinner) signupSpinner.style.display = 'none';
+                authConnectionFailed(action, 'Failed to connect. Please try again.');
             }
         }
 
         function handleAuthResponse(data) {
+            if (authTimeout) { clearTimeout(authTimeout); authTimeout = null; }
             const loginSpinner = document.getElementById('loginSpinner');
             const signupSpinner = document.getElementById('signupSpinner');
             if (loginSpinner) loginSpinner.style.display = 'none';
@@ -5896,10 +5942,21 @@
                 hideAuthModal();
                 document.getElementById('menu').style.display = 'flex';
             } else if (data.type === 'auth_error') {
-                const loginForm = document.getElementById('loginForm');
-                const isLoginTab = loginForm.classList.contains('active');
-                const errorEl = document.getElementById(isLoginTab ? 'loginError' : 'signupError');
-                if (errorEl) errorEl.textContent = data.message || 'Authentication failed.';
+                // If auth modal isn't visible, this was a background check_auth - show modal
+                const authModal = document.getElementById('authModal');
+                if (authModal.style.display === 'none' || authModal.style.display === '') {
+                    isAuthenticated = false;
+                    authToken = null;
+                    authenticatedUsername = null;
+                    setCookie('authToken', '', -1);
+                    setCookie('authUsername', '', -1);
+                    showAuthModal();
+                } else {
+                    const loginForm = document.getElementById('loginForm');
+                    const isLoginTab = loginForm.classList.contains('active');
+                    const errorEl = document.getElementById(isLoginTab ? 'loginError' : 'signupError');
+                    if (errorEl) errorEl.textContent = data.message || 'Authentication failed.';
+                }
             } else if (data.type === 'auth_expired') {
                 // Token expired, clear and show auth modal
                 isAuthenticated = false;

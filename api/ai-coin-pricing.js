@@ -1,7 +1,13 @@
 import Stripe from 'stripe';
 import { setCorsHeaders, handleOptions } from './_lib/cors.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+let stripe = null;
+function getStripe() {
+  if (!stripe && process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripe;
+}
 
 // Smart pricing algorithm (no AI dependency)
 function calculateSmartPrice(coins) {
@@ -61,10 +67,21 @@ export default async function handler(req, res) {
 
     // Try to create Stripe session, but return price info even if it fails
     try {
+      const stripeClient = getStripe();
+      if (!stripeClient) {
+        return res.status(200).json({
+          url: null,
+          coins: coins,
+          price: priceData.price,
+          reasoning: priceData.reasoning,
+          stripeError: 'Payment service not configured',
+        });
+      }
+
       const priceInCents = Math.round(priceData.price * 100);
 
       // Create ephemeral Stripe product and price
-      const product = await stripe.products.create({
+      const product = await stripeClient.products.create({
         name: `${coins} Game Coins`,
         description: `Purchase of ${coins} coins for ShatterRealms`,
         metadata: {
@@ -74,14 +91,14 @@ export default async function handler(req, res) {
         active: true,
       });
 
-      const price = await stripe.prices.create({
+      const price = await stripeClient.prices.create({
         product: product.id,
         unit_amount: priceInCents,
         currency: 'usd',
       });
 
       // Create checkout session
-      const session = await stripe.checkout.sessions.create({
+      const session = await stripeClient.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [
           {
@@ -90,8 +107,8 @@ export default async function handler(req, res) {
           },
         ],
         mode: 'payment',
-        success_url: `${req.headers.origin || 'https://i-like-mangos.vercel.app'}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.origin || 'https://i-like-mangos.vercel.app'}?canceled=true`,
+        success_url: `${req.headers.origin || `https://${req.headers.host}`}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.headers.origin || `https://${req.headers.host}`}?canceled=true`,
         metadata: {
           coins: coins.toString(),
         },

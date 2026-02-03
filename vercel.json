@@ -5,6 +5,7 @@
     { "source": "/api/stripe-config", "destination": "/api/stripe-config" },
     { "source": "/api/ai-coin-pricing", "destination": "/api/ai-coin-pricing" },
     { "source": "/api/generate-weapon", "destination": "/api/generate-weapon" },
+    { "source": "/api/validate-username", "destination": "/api/validate-username" },
     { "source": "/", "destination": "/index.html" }
   ],
   "redirects": [

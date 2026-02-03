@@ -2,7 +2,13 @@
 import Stripe from 'stripe';
 import { setCorsHeaders, handleOptions } from './_lib/cors.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+let stripe = null;
+function getStripe() {
+  if (!stripe && process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripe;
+}
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -17,6 +23,10 @@ export default async function handler(req, res) {
   }
 
   try {
+    const stripeClient = getStripe();
+    if (!stripeClient) {
+      return res.status(503).json({ error: 'Payment service not configured' });
+    }
     const { coinPackage } = req.body;
 
     // Define coin packages
@@ -37,7 +47,7 @@ export default async function handler(req, res) {
     const host = req.headers['x-forwarded-host'] || req.headers.host;
     const baseUrl = `${protocol}://${host}`;
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await stripeClient.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {

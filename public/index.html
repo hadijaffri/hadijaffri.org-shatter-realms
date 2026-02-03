@@ -210,6 +210,64 @@
     <!-- Notification Toast Container -->
     <div id="notificationContainer" style="position: fixed; top: 15px; right: 15px; z-index: 600; display: flex; flex-direction: column; gap: 8px; pointer-events: none; max-width: 320px;"></div>
 
+    <!-- Auth Modal -->
+    <div id="authModal">
+        <div class="auth-content">
+            <h2>SHATTERREALMS</h2>
+            <div class="subtitle">Realism Edition</div>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Log In</button>
+                <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+            </div>
+            <!-- Login Form -->
+            <div id="loginForm" class="auth-form active">
+                <div class="auth-input-group">
+                    <label>Username</label>
+                    <input type="text" id="loginUsername" class="auth-input" placeholder="Enter username" maxlength="20" autocomplete="username" onkeydown="if(event.key==='Enter')submitLogin()">
+                </div>
+                <div class="auth-input-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" class="auth-input" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitLogin()">
+                </div>
+                <div id="loginError" class="auth-error"></div>
+                <div id="loginSpinner" class="auth-spinner"></div>
+                <button class="auth-submit-btn" onclick="submitLogin()">Log In</button>
+            </div>
+            <!-- Sign Up Form -->
+            <div id="signupForm" class="auth-form">
+                <div class="auth-input-group">
+                    <label>Username</label>
+                    <input type="text" id="signupUsername" class="auth-input" placeholder="Choose a username" maxlength="20" autocomplete="username" oninput="validateUsernameRealtime()" onkeydown="if(event.key==='Enter')submitSignup()">
+                    <div id="usernameStatus" class="username-status"></div>
+                </div>
+                <div class="auth-input-group">
+                    <label>Password</label>
+                    <input type="password" id="signupPassword" class="auth-input" placeholder="Choose a password (min 6 chars)" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitSignup()">
+                </div>
+                <div class="auth-input-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="signupConfirmPassword" class="auth-input" placeholder="Confirm password" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitSignup()">
+                </div>
+                <div id="signupError" class="auth-error"></div>
+                <div id="signupSpinner" class="auth-spinner"></div>
+                <button class="auth-submit-btn" onclick="submitSignup()">Create Account</button>
+            </div>
+            <div class="auth-guest-link" onclick="continueAsGuest()">Continue as Guest</div>
+        </div>
+    </div>
+
+    <!-- Empty Lobby Prompt -->
+    <div id="emptyLobbyPrompt">
+        <div class="empty-lobby-content">
+            <h3>No Players Found</h3>
+            <p>No other players are in the lobby right now. Would you like to switch to Solo mode?</p>
+            <div class="empty-lobby-buttons">
+                <button class="menu-btn" onclick="switchToSoloFromMultiplayer()" style="background: linear-gradient(135deg, #4a00e0, #8e2de2);">Go Solo</button>
+                <button class="menu-btn" onclick="dismissEmptyLobbyPrompt()" style="background: #444;">Keep Waiting</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Inventory Management Panel -->
     <div id="inventoryPanel" class="panel" style="display: none; max-width: 600px;">
         <div class="panel-header">
@@ -397,6 +455,15 @@
         let connectionTimeout = null;
         const CONNECTION_TIMEOUT_MS = 10000;
         let isRetrying = false;
+
+        // Auth state
+        let isAuthenticated = false;
+        let authToken = getCookie('authToken') || null;
+        let authenticatedUsername = null;
+        let usernameValidationTimer = null;
+
+        // Empty lobby timer
+        let emptyLobbyTimer = null;
 
         // Social / friends state
         let socialSocket = null;
@@ -4741,40 +4808,50 @@
         // ========== MULTIPLAYER FUNCTIONS ==========
 
         async function joinMultiplayer() {
-            // Process player name from input
             const nameInput = document.getElementById('playerNameInput');
             const nameWarning = document.getElementById('nameWarning');
-            let rawName = (nameInput.value || '').trim();
 
-            // Sanitize HTML special characters
-            rawName = rawName.replace(/[<>&"']/g, '');
+            if (isAuthenticated && authenticatedUsername) {
+                // Authenticated users always use their account username
+                playerName = authenticatedUsername;
+                nameInput.value = playerName;
+                nameInput.disabled = true;
+                nameWarning.style.display = 'none';
+            } else {
+                nameInput.disabled = false;
+                // Guest flow: process player name from input
+                let rawName = (nameInput.value || '').trim();
 
-            if (rawName.length > 0) {
-                try {
-                    const filterResponse = await fetch('/api/filter-chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: rawName })
-                    });
-                    const filterData = await filterResponse.json();
-                    if (filterData.wasCensored) {
-                        nameWarning.textContent = 'Name contained inappropriate content and was modified.';
-                        nameWarning.style.display = 'block';
-                        playerName = filterData.filtered;
-                    } else {
-                        playerName = filterData.filtered;
+                // Sanitize HTML special characters
+                rawName = rawName.replace(/[<>&"']/g, '');
+
+                if (rawName.length > 0) {
+                    try {
+                        const filterResponse = await fetch('/api/filter-chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ message: rawName })
+                        });
+                        const filterData = await filterResponse.json();
+                        if (filterData.wasCensored) {
+                            nameWarning.textContent = 'Name contained inappropriate content and was modified.';
+                            nameWarning.style.display = 'block';
+                            playerName = filterData.filtered;
+                        } else {
+                            playerName = filterData.filtered;
+                            nameWarning.style.display = 'none';
+                        }
+                    } catch (_e) {
+                        playerName = rawName;
                         nameWarning.style.display = 'none';
                     }
-                } catch (_e) {
-                    playerName = rawName;
+                } else {
+                    playerName = 'Guest_' + Math.random().toString(36).substr(2, 4);
                     nameWarning.style.display = 'none';
                 }
-            } else {
-                playerName = 'Player_' + Math.random().toString(36).substr(2, 4);
-                nameWarning.style.display = 'none';
-            }
 
-            nameInput.value = playerName;
+                nameInput.value = playerName;
+            }
 
             document.getElementById('menu').style.display = 'none';
             document.getElementById('multiplayerLobby').style.display = 'flex';
@@ -4811,7 +4888,7 @@
         }
 
         function attemptConnection(url) {
-            const wsUrl = url || 'wss://game.hadijaffri.partykit.dev/parties/main/arena-main';
+            const wsUrl = url || 'wss://game.hadijaffri.partykit.dev/parties/game/arena-main';
             connectionAttempts++;
             isRetrying = false;
             const statusEl = document.getElementById('lobbyStatus');
@@ -4956,6 +5033,12 @@
                         if (voiceChatEnabled) {
                             createPeerConnection(data.player.id, true);
                         }
+                        // Cancel empty lobby timer and dismiss prompt
+                        if (emptyLobbyTimer) {
+                            clearTimeout(emptyLobbyTimer);
+                            emptyLobbyTimer = null;
+                        }
+                        dismissEmptyLobbyPrompt();
                     }
                     updatePlayerCount();
                     break;
@@ -5058,6 +5141,14 @@
             document.getElementById('multiplayerHUD').style.display = 'block';
             document.getElementById('statsPanel').style.display = 'none'; // Hide wave/score in MP
             document.getElementById('minimap').style.display = 'block';
+
+            // Start empty lobby timer - if alone for 15s, prompt to switch to solo
+            if (emptyLobbyTimer) clearTimeout(emptyLobbyTimer);
+            emptyLobbyTimer = setTimeout(() => {
+                if (isMultiplayer && Object.keys(remotePlayers).length === 0) {
+                    showEmptyLobbyPrompt();
+                }
+            }, 15000);
 
             // Show/hide voice chat button based on age verification
             const voiceBtn = document.getElementById('voiceChatBtn');
@@ -5398,6 +5489,13 @@
             // Disable voice chat
             disableVoiceChat();
 
+            // Clear empty lobby timer
+            if (emptyLobbyTimer) {
+                clearTimeout(emptyLobbyTimer);
+                emptyLobbyTimer = null;
+            }
+            dismissEmptyLobbyPrompt();
+
             // Clear any pending reconnect/timeout
             if (reconnectTimeout) {
                 clearTimeout(reconnectTimeout);
@@ -5441,6 +5539,12 @@
         }
 
         function leaveLobby() {
+            // Clear empty lobby timer
+            if (emptyLobbyTimer) {
+                clearTimeout(emptyLobbyTimer);
+                emptyLobbyTimer = null;
+            }
+
             // Clear any pending reconnect/timeout
             if (reconnectTimeout) {
                 clearTimeout(reconnectTimeout);
@@ -5563,6 +5667,360 @@
             if (isChatOpen) closeChatInput();
         }
 
+        // ========== AUTH SYSTEM ==========
+
+        function showAuthModal() {
+            document.getElementById('authModal').style.display = 'flex';
+            document.getElementById('menu').style.display = 'none';
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+        }
+
+        function switchAuthTab(tab) {
+            const tabs = document.querySelectorAll('.auth-tab');
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+
+            tabs.forEach(t => t.classList.remove('active'));
+
+            if (tab === 'login') {
+                tabs[0].classList.add('active');
+                loginForm.classList.add('active');
+                signupForm.classList.remove('active');
+            } else {
+                tabs[1].classList.add('active');
+                signupForm.classList.add('active');
+                loginForm.classList.remove('active');
+            }
+
+            // Clear errors
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('signupError').textContent = '';
+        }
+
+        function validateUsernameRealtime() {
+            const input = document.getElementById('signupUsername');
+            const statusEl = document.getElementById('usernameStatus');
+            const username = (input.value || '').trim();
+
+            if (usernameValidationTimer) clearTimeout(usernameValidationTimer);
+
+            if (username.length === 0) {
+                statusEl.textContent = '';
+                statusEl.className = 'username-status';
+                input.classList.remove('valid', 'invalid');
+                return;
+            }
+
+            if (username.length < 3) {
+                statusEl.textContent = 'Username must be at least 3 characters.';
+                statusEl.className = 'username-status invalid';
+                input.classList.remove('valid');
+                input.classList.add('invalid');
+                return;
+            }
+
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                statusEl.textContent = 'Only letters, numbers, and underscores allowed.';
+                statusEl.className = 'username-status invalid';
+                input.classList.remove('valid');
+                input.classList.add('invalid');
+                return;
+            }
+
+            statusEl.textContent = 'Checking...';
+            statusEl.className = 'username-status checking';
+
+            usernameValidationTimer = setTimeout(async () => {
+                try {
+                    const resp = await fetch('/api/validate-username', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username })
+                    });
+                    const data = await resp.json();
+                    // Only update if input hasn't changed
+                    if (input.value.trim() === username) {
+                        if (data.valid) {
+                            statusEl.textContent = data.reason || 'Username looks good!';
+                            statusEl.className = 'username-status valid';
+                            input.classList.remove('invalid');
+                            input.classList.add('valid');
+                        } else {
+                            statusEl.textContent = data.reason || 'Username not available.';
+                            statusEl.className = 'username-status invalid';
+                            input.classList.remove('valid');
+                            input.classList.add('invalid');
+                        }
+                    }
+                } catch (_e) {
+                    if (input.value.trim() === username) {
+                        statusEl.textContent = 'Could not validate. Try again.';
+                        statusEl.className = 'username-status checking';
+                    }
+                }
+            }, 500);
+        }
+
+        function submitLogin() {
+            const username = (document.getElementById('loginUsername').value || '').trim();
+            const password = document.getElementById('loginPassword').value || '';
+            const errorEl = document.getElementById('loginError');
+            const spinner = document.getElementById('loginSpinner');
+            const submitBtn = document.querySelector('#loginForm .auth-submit-btn');
+
+            errorEl.textContent = '';
+
+            if (!username || !password) {
+                errorEl.textContent = 'Please enter username and password.';
+                return;
+            }
+
+            spinner.style.display = 'block';
+            if (submitBtn) submitBtn.disabled = true;
+            connectToSocialServerForAuth('login', { username, password, deviceId });
+        }
+
+        async function submitSignup() {
+            const username = (document.getElementById('signupUsername').value || '').trim();
+            const password = document.getElementById('signupPassword').value || '';
+            const confirmPassword = document.getElementById('signupConfirmPassword').value || '';
+            const errorEl = document.getElementById('signupError');
+            const spinner = document.getElementById('signupSpinner');
+            const submitBtn = document.querySelector('#signupForm .auth-submit-btn');
+
+            errorEl.textContent = '';
+
+            if (!username || username.length < 3) {
+                errorEl.textContent = 'Username must be at least 3 characters.';
+                return;
+            }
+
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                errorEl.textContent = 'Username can only contain letters, numbers, and underscores.';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorEl.textContent = 'Password must be at least 6 characters.';
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                errorEl.textContent = 'Passwords do not match.';
+                return;
+            }
+
+            // Validate username appropriateness before creating account
+            spinner.style.display = 'block';
+            if (submitBtn) submitBtn.disabled = true;
+            try {
+                const validateResp = await fetch('/api/validate-username', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const validateData = await validateResp.json();
+                if (!validateData.valid) {
+                    spinner.style.display = 'none';
+                    if (submitBtn) submitBtn.disabled = false;
+                    errorEl.textContent = validateData.reason || 'Username is not appropriate.';
+                    return;
+                }
+            } catch (_e) {
+                // If validation service is down, allow signup with basic validation only
+                console.error('Username validation service unavailable, proceeding with basic validation');
+            }
+
+            connectToSocialServerForAuth('signup', { username, password, deviceId });
+        }
+
+        let authTimeout = null;
+
+        function authConnectionFailed(action, message) {
+            const loginSpinner = document.getElementById('loginSpinner');
+            const signupSpinner = document.getElementById('signupSpinner');
+            const loginBtn = document.querySelector('#loginForm .auth-submit-btn');
+            const signupBtn = document.querySelector('#signupForm .auth-submit-btn');
+            if (loginSpinner) loginSpinner.style.display = 'none';
+            if (signupSpinner) signupSpinner.style.display = 'none';
+            if (loginBtn) loginBtn.disabled = false;
+            if (signupBtn) signupBtn.disabled = false;
+            if (authTimeout) { clearTimeout(authTimeout); authTimeout = null; }
+
+            if (action === 'check_auth') {
+                // Auto-login failed - clear stale cookies and show auth modal
+                isAuthenticated = false;
+                authToken = null;
+                authenticatedUsername = null;
+                setCookie('authToken', '', -1);
+                setCookie('authUsername', '', -1);
+                showAuthModal();
+            } else {
+                const errorEl = document.getElementById(action === 'login' ? 'loginError' : 'signupError');
+                if (errorEl) errorEl.textContent = message || 'Connection error. Please try again.';
+            }
+        }
+
+        function connectToSocialServerForAuth(action, credentials) {
+            // Close any existing social socket
+            if (socialSocket) {
+                try { socialSocket.close(); } catch (_e) { /* ignore */ }
+                socialSocket = null;
+            }
+            if (authTimeout) { clearTimeout(authTimeout); authTimeout = null; }
+
+            // Timeout: if no response in 10 seconds, treat as failure
+            authTimeout = setTimeout(() => {
+                authTimeout = null;
+                console.error('Auth connection timed out for action:', action);
+                if (socialSocket) {
+                    try { socialSocket.close(); } catch (_e) { /* ignore */ }
+                    socialSocket = null;
+                }
+                authConnectionFailed(action, 'Connection timed out. Please try again.');
+            }, 10000);
+
+            try {
+                socialSocket = new WebSocket('wss://game.hadijaffri.partykit.dev/parties/social/social-hub');
+
+                socialSocket.onopen = () => {
+                    socialSocket.send(JSON.stringify({
+                        type: action,
+                        ...credentials
+                    }));
+                };
+
+                socialSocket.onmessage = (event) => {
+                    if (authTimeout) { clearTimeout(authTimeout); authTimeout = null; }
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'auth_success' || data.type === 'auth_error' || data.type === 'auth_expired') {
+                            handleAuthResponse(data);
+                        } else {
+                            handleSocialMessage(data);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing auth message:', e);
+                    }
+                };
+
+                socialSocket.onerror = () => {
+                    authConnectionFailed(action, 'Connection error. Please try again.');
+                };
+
+                socialSocket.onclose = () => {
+                    // Only null out if this is still the active socket
+                    if (socialSocket && socialSocket.readyState === WebSocket.CLOSED) {
+                        socialSocket = null;
+                    }
+                };
+            } catch (e) {
+                console.error('Failed to connect for auth:', e);
+                authConnectionFailed(action, 'Failed to connect. Please try again.');
+            }
+        }
+
+        function handleAuthResponse(data) {
+            if (authTimeout) { clearTimeout(authTimeout); authTimeout = null; }
+            const loginSpinner = document.getElementById('loginSpinner');
+            const signupSpinner = document.getElementById('signupSpinner');
+            const loginBtn = document.querySelector('#loginForm .auth-submit-btn');
+            const signupBtn = document.querySelector('#signupForm .auth-submit-btn');
+            if (loginSpinner) loginSpinner.style.display = 'none';
+            if (signupSpinner) signupSpinner.style.display = 'none';
+            if (loginBtn) loginBtn.disabled = false;
+            if (signupBtn) signupBtn.disabled = false;
+
+            if (data.type === 'auth_success') {
+                isAuthenticated = true;
+                authToken = data.token;
+                authenticatedUsername = data.username;
+                playerName = data.username;
+                if (data.deviceId) {
+                    // Update deviceId cookie if server returned one (for login with existing account)
+                    setCookie('deviceId', data.deviceId);
+                }
+                setCookie('authToken', data.token, 30);
+                setCookie('authUsername', data.username, 30);
+
+                // Update social data
+                myFriendCode = data.friendCode || '';
+                friendsList = data.friends || [];
+                pendingRequests = data.pendingRequests || [];
+                friendsServers = data.friendsServers || [];
+
+                hideAuthModal();
+                document.getElementById('menu').style.display = 'flex';
+            } else if (data.type === 'auth_error') {
+                // If auth modal isn't visible, this was a background check_auth - show modal
+                const authModal = document.getElementById('authModal');
+                if (authModal.style.display === 'none' || authModal.style.display === '') {
+                    isAuthenticated = false;
+                    authToken = null;
+                    authenticatedUsername = null;
+                    setCookie('authToken', '', -1);
+                    setCookie('authUsername', '', -1);
+                    showAuthModal();
+                } else {
+                    const loginForm = document.getElementById('loginForm');
+                    const isLoginTab = loginForm.classList.contains('active');
+                    const errorEl = document.getElementById(isLoginTab ? 'loginError' : 'signupError');
+                    if (errorEl) errorEl.textContent = data.message || 'Authentication failed.';
+                }
+            } else if (data.type === 'auth_expired') {
+                // Token expired, clear and show auth modal
+                isAuthenticated = false;
+                authToken = null;
+                authenticatedUsername = null;
+                setCookie('authToken', '', -1);
+                setCookie('authUsername', '', -1);
+                showAuthModal();
+            }
+        }
+
+        function continueAsGuest() {
+            isAuthenticated = false;
+            authToken = null;
+            authenticatedUsername = null;
+            playerName = 'Guest_' + Math.random().toString(36).substr(2, 4);
+            hideAuthModal();
+            document.getElementById('menu').style.display = 'flex';
+        }
+
+        function tryAutoLogin() {
+            const savedToken = getCookie('authToken');
+            const savedUsername = getCookie('authUsername');
+
+            if (savedToken && savedUsername) {
+                // Try auto-login with saved token
+                authenticatedUsername = savedUsername;
+                playerName = savedUsername;
+                connectToSocialServerForAuth('check_auth', { token: savedToken, deviceId });
+            } else {
+                // No saved session, show auth modal
+                showAuthModal();
+            }
+        }
+
+        // ========== EMPTY LOBBY FUNCTIONS ==========
+
+        function showEmptyLobbyPrompt() {
+            document.getElementById('emptyLobbyPrompt').style.display = 'flex';
+        }
+
+        function dismissEmptyLobbyPrompt() {
+            document.getElementById('emptyLobbyPrompt').style.display = 'none';
+        }
+
+        function switchToSoloFromMultiplayer() {
+            dismissEmptyLobbyPrompt();
+            leaveMultiplayer();
+            startGame();
+        }
+
         // ========== FRIENDS SYSTEM ==========
 
         function connectToSocialServer() {
@@ -5572,17 +6030,43 @@
                 socialSocket = new WebSocket('wss://game.hadijaffri.partykit.dev/parties/social/social-hub');
 
                 socialSocket.onopen = () => {
-                    socialSocket.send(JSON.stringify({
-                        type: 'register',
-                        deviceId: deviceId,
-                        username: playerName
-                    }));
+                    if (isAuthenticated && authToken) {
+                        // Use check_auth for authenticated users
+                        socialSocket.send(JSON.stringify({
+                            type: 'check_auth',
+                            token: authToken,
+                            deviceId: deviceId
+                        }));
+                    } else {
+                        // Guest mode - use register
+                        socialSocket.send(JSON.stringify({
+                            type: 'register',
+                            deviceId: deviceId,
+                            username: playerName
+                        }));
+                    }
                 };
 
                 socialSocket.onmessage = (event) => {
                     try {
                         const data = JSON.parse(event.data);
-                        handleSocialMessage(data);
+                        if (data.type === 'auth_success') {
+                            // Update social data from auth response
+                            myFriendCode = data.friendCode || '';
+                            friendsList = data.friends || [];
+                            pendingRequests = data.pendingRequests || [];
+                            friendsServers = data.friendsServers || [];
+                            updateFriendsUI();
+                        } else if (data.type === 'auth_expired') {
+                            // Fall back to register
+                            socialSocket.send(JSON.stringify({
+                                type: 'register',
+                                deviceId: deviceId,
+                                username: playerName
+                            }));
+                        } else {
+                            handleSocialMessage(data);
+                        }
                     } catch (e) {
                         console.error('Error parsing social message:', e);
                     }
@@ -6318,6 +6802,10 @@
         initDeviceMode();
         checkPaymentSuccess();
         gameLoop(0);
+
+        // Hide menu initially and start auth flow
+        document.getElementById('menu').style.display = 'none';
+        tryAutoLogin();
     </script>
 </body>
 </html>

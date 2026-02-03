@@ -1,7 +1,13 @@
 import Stripe from 'stripe';
 import { setCorsHeaders, handleOptions } from './_lib/cors.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+let stripe = null;
+function getStripe() {
+  if (!stripe && process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripe;
+}
 
 export default async function handler(req, res) {
   setCorsHeaders(res);
@@ -15,13 +21,18 @@ export default async function handler(req, res) {
   }
 
   try {
+    const stripeClient = getStripe();
+    if (!stripeClient) {
+      return res.status(503).json({ error: 'Payment service not configured' });
+    }
+
     const { sessionId } = req.body;
 
     if (!sessionId || typeof sessionId !== 'string') {
       return res.status(400).json({ error: 'Missing or invalid session ID' });
     }
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripeClient.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== 'paid') {
       return res.status(400).json({ error: 'Payment not completed' });

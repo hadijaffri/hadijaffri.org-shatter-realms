@@ -2,6 +2,7 @@
   "name": "game",
   "main": "party/game.ts",
   "parties": {
+    "game": "party/game.ts",
     "social": "party/social.ts"
   },
   "compatibilityDate": "2024-01-01"

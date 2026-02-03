@@ -8,6 +8,21 @@ interface PlayerSocialData {
   pendingRequests: { fromDeviceId: string; fromUsername: string; fromFriendCode: string }[];
 }
 
+interface AccountData {
+  username: string;
+  usernameLower: string;
+  passwordHash: string;
+  passwordSalt: string;
+  deviceId: string;
+  createdAt: number;
+}
+
+interface SessionData {
+  username: string;
+  deviceId: string;
+  expiresAt: number;
+}
+
 interface FriendsServer {
   roomId: string;
   hostDeviceId: string;
@@ -16,13 +31,107 @@ interface FriendsServer {
   active: boolean;
 }
 
+// Password hashing using Web Crypto API (available in PartyKit/Cloudflare Workers)
+async function hashPassword(
+  password: string,
+  salt?: string
+): Promise<{ hash: string; salt: string }> {
+  const encoder = new TextEncoder();
+  const actualSalt = salt || bufferToHex(crypto.getRandomValues(new Uint8Array(16)));
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: encoder.encode(actualSalt),
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    256
+  );
+  return { hash: bufferToHex(new Uint8Array(derivedBits)), salt: actualSalt };
+}
+
+async function verifyPassword(
+  password: string,
+  storedHash: string,
+  salt: string
+): Promise<boolean> {
+  const { hash } = await hashPassword(password, salt);
+  return hash === storedHash;
+}
+
+function bufferToHex(buffer: Uint8Array): string {
+  return Array.from(buffer)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function generateSessionToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return bufferToHex(bytes);
+}
+
+// Server-side profanity blocklist for usernames
+const BLOCKED_WORDS = [
+  'admin',
+  'moderator',
+  'staff',
+  'fuck',
+  'shit',
+  'ass',
+  'dick',
+  'cock',
+  'pussy',
+  'bitch',
+  'nigger',
+  'nigga',
+  'faggot',
+  'retard',
+  'whore',
+  'slut',
+  'cunt',
+  'porn',
+  'sex',
+  'rape',
+  'nazi',
+  'hitler',
+  'kill',
+  'murder',
+  'suicide',
+  'drug',
+  'weed',
+  'cocaine',
+];
+
+function containsBlockedWord(username: string): boolean {
+  const lower = username.toLowerCase();
+  // Also check with common l33t substitutions
+  const normalized = lower
+    .replace(/0/g, 'o')
+    .replace(/1/g, 'i')
+    .replace(/3/g, 'e')
+    .replace(/4/g, 'a')
+    .replace(/5/g, 's')
+    .replace(/7/g, 't')
+    .replace(/@/g, 'a')
+    .replace(/\$/g, 's');
+  return BLOCKED_WORDS.some(word => normalized.includes(word) || lower.includes(word));
+}
+
 export default class SocialServer implements Party.Server {
   constructor(readonly room: Party.Room) {}
 
   // In-memory lookup of connected deviceId -> connection
   connections: Record<string, Party.Connection> = {};
 
-  async onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+  async onConnect(conn: Party.Connection, _ctx: Party.ConnectionContext) {
     // Wait for register message to associate deviceId
     console.log(`Social connection: ${conn.id}`);
   }
@@ -43,6 +152,15 @@ export default class SocialServer implements Party.Server {
     try {
       const data = JSON.parse(message);
       switch (data.type) {
+        case 'signup':
+          await this.handleSignup(sender, data);
+          break;
+        case 'login':
+          await this.handleLogin(sender, data);
+          break;
+        case 'check_auth':
+          await this.handleCheckAuth(sender, data);
+          break;
         case 'register':
           await this.handleRegister(sender, data);
           break;
@@ -72,6 +190,220 @@ export default class SocialServer implements Party.Server {
       console.error('Social server error:', e);
     }
   }
+
+  // ========== AUTH HANDLERS ==========
+
+  async handleSignup(
+    conn: Party.Connection,
+    data: { username: string; password: string; deviceId: string }
+  ) {
+    const { username, password, deviceId } = data;
+
+    // Validate username: 3-20 chars, alphanumeric + underscore
+    if (!username || username.length < 3 || username.length > 20) {
+      conn.send(
+        JSON.stringify({ type: 'auth_error', message: 'Username must be 3-20 characters.' })
+      );
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      conn.send(
+        JSON.stringify({
+          type: 'auth_error',
+          message: 'Username can only contain letters, numbers, and underscores.',
+        })
+      );
+      return;
+    }
+
+    // Check profanity blocklist
+    if (containsBlockedWord(username)) {
+      conn.send(
+        JSON.stringify({ type: 'auth_error', message: 'Username contains inappropriate content.' })
+      );
+      return;
+    }
+
+    // Validate password: min 6 chars
+    if (!password || password.length < 6) {
+      conn.send(
+        JSON.stringify({ type: 'auth_error', message: 'Password must be at least 6 characters.' })
+      );
+      return;
+    }
+
+    // Check uniqueness (case-insensitive)
+    const usernameLower = username.toLowerCase();
+    const existing = await this.room.storage.get<AccountData>(`account:${usernameLower}`);
+    if (existing) {
+      conn.send(JSON.stringify({ type: 'auth_error', message: 'Username is already taken.' }));
+      return;
+    }
+
+    // Hash password
+    const { hash, salt } = await hashPassword(password);
+
+    // Create account
+    const account: AccountData = {
+      username,
+      usernameLower,
+      passwordHash: hash,
+      passwordSalt: salt,
+      deviceId,
+      createdAt: Date.now(),
+    };
+    await this.room.storage.put(`account:${usernameLower}`, account);
+
+    // Generate session token
+    const token = generateSessionToken();
+    const session: SessionData = {
+      username,
+      deviceId,
+      expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+    };
+    await this.room.storage.put(`session:${token}`, session);
+
+    // Auto-register social data
+    this.connections[deviceId] = conn;
+    let playerData = await this.getPlayerData(deviceId);
+    if (!playerData) {
+      let friendCode = this.generateFriendCode(username);
+      let attempts = 0;
+      while (attempts < 10) {
+        const existingCode = await this.room.storage.get<string>(`code:${friendCode}`);
+        if (!existingCode) break;
+        friendCode = this.generateFriendCode(username);
+        attempts++;
+      }
+      playerData = {
+        deviceId,
+        username,
+        friendCode,
+        friends: [],
+        pendingRequests: [],
+      };
+      await this.room.storage.put(`code:${friendCode}`, deviceId);
+    } else {
+      // Update username
+      if (playerData.username !== username) {
+        await this.room.storage.delete(`code:${playerData.friendCode}`);
+        const newCode = this.generateFriendCode(username);
+        playerData.username = username;
+        playerData.friendCode = newCode;
+        await this.room.storage.put(`code:${newCode}`, deviceId);
+      }
+    }
+    await this.savePlayerData(playerData);
+
+    const servers = await this.getActiveFriendsServers(deviceId);
+
+    conn.send(
+      JSON.stringify({
+        type: 'auth_success',
+        token,
+        username,
+        friendCode: playerData.friendCode,
+        friends: await this.enrichFriendsList(playerData.friends),
+        pendingRequests: playerData.pendingRequests,
+        friendsServers: servers,
+      })
+    );
+  }
+
+  async handleLogin(
+    conn: Party.Connection,
+    data: { username: string; password: string; deviceId: string }
+  ) {
+    const { username, password, deviceId } = data;
+
+    if (!username || !password) {
+      conn.send(
+        JSON.stringify({ type: 'auth_error', message: 'Username and password are required.' })
+      );
+      return;
+    }
+
+    const usernameLower = username.toLowerCase();
+    const account = await this.room.storage.get<AccountData>(`account:${usernameLower}`);
+    if (!account) {
+      conn.send(JSON.stringify({ type: 'auth_error', message: 'Invalid username or password.' }));
+      return;
+    }
+
+    const valid = await verifyPassword(password, account.passwordHash, account.passwordSalt);
+    if (!valid) {
+      conn.send(JSON.stringify({ type: 'auth_error', message: 'Invalid username or password.' }));
+      return;
+    }
+
+    // Generate session
+    const token = generateSessionToken();
+    const session: SessionData = {
+      username: account.username,
+      deviceId: account.deviceId,
+      expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+    };
+    await this.room.storage.put(`session:${token}`, session);
+
+    // Load social data
+    const actualDeviceId = account.deviceId;
+    this.connections[actualDeviceId] = conn;
+    const playerData = await this.getPlayerData(actualDeviceId);
+    const servers = await this.getActiveFriendsServers(actualDeviceId);
+
+    conn.send(
+      JSON.stringify({
+        type: 'auth_success',
+        token,
+        username: account.username,
+        deviceId: actualDeviceId,
+        friendCode: playerData?.friendCode || '',
+        friends: playerData ? await this.enrichFriendsList(playerData.friends) : [],
+        pendingRequests: playerData?.pendingRequests || [],
+        friendsServers: servers,
+      })
+    );
+  }
+
+  async handleCheckAuth(conn: Party.Connection, data: { token: string; deviceId: string }) {
+    const { token, deviceId } = data;
+
+    if (!token) {
+      conn.send(JSON.stringify({ type: 'auth_expired' }));
+      return;
+    }
+
+    const session = await this.room.storage.get<SessionData>(`session:${token}`);
+    if (!session || session.expiresAt < Date.now()) {
+      // Clean up expired session
+      if (session) {
+        await this.room.storage.delete(`session:${token}`);
+      }
+      conn.send(JSON.stringify({ type: 'auth_expired' }));
+      return;
+    }
+
+    // Load social data
+    const actualDeviceId = session.deviceId;
+    this.connections[actualDeviceId] = conn;
+    const playerData = await this.getPlayerData(actualDeviceId);
+    const servers = await this.getActiveFriendsServers(actualDeviceId);
+
+    conn.send(
+      JSON.stringify({
+        type: 'auth_success',
+        token,
+        username: session.username,
+        deviceId: actualDeviceId,
+        friendCode: playerData?.friendCode || '',
+        friends: playerData ? await this.enrichFriendsList(playerData.friends) : [],
+        pendingRequests: playerData?.pendingRequests || [],
+        friendsServers: servers,
+      })
+    );
+  }
+
+  // ========== SOCIAL HANDLERS ==========
 
   async getPlayerData(deviceId: string): Promise<PlayerSocialData | null> {
     return (await this.room.storage.get<PlayerSocialData>(`player:${deviceId}`)) || null;
@@ -344,7 +676,7 @@ export default class SocialServer implements Party.Server {
     hostedServers.push(roomId);
     await this.room.storage.put(`hosted:${deviceId}`, hostedServers);
 
-    const wsUrl = `wss://game.hadijaffri.partykit.dev/parties/main/${roomId}`;
+    const wsUrl = `wss://game.hadijaffri.partykit.dev/parties/game/${roomId}`;
 
     conn.send(
       JSON.stringify({
@@ -403,7 +735,7 @@ export default class SocialServer implements Party.Server {
       return;
     }
 
-    const wsUrl = `wss://game.hadijaffri.partykit.dev/parties/main/${roomId}`;
+    const wsUrl = `wss://game.hadijaffri.partykit.dev/parties/game/${roomId}`;
     conn.send(JSON.stringify({ type: 'join_approved', roomId, wsUrl }));
   }
 

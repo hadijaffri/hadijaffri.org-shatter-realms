@@ -676,7 +676,7 @@ export default class SocialServer implements Party.Server {
     hostedServers.push(roomId);
     await this.room.storage.put(`hosted:${deviceId}`, hostedServers);
 
-    const wsUrl = `wss://game.hadijaffri.partykit.dev/parties/main/${roomId}`;
+    const wsUrl = `wss://game.hadijaffri.partykit.dev/parties/game/${roomId}`;
 
     conn.send(
       JSON.stringify({
@@ -735,7 +735,7 @@ export default class SocialServer implements Party.Server {
       return;
     }
 
-    const wsUrl = `wss://game.hadijaffri.partykit.dev/parties/main/${roomId}`;
+    const wsUrl = `wss://game.hadijaffri.partykit.dev/parties/game/${roomId}`;
     conn.send(JSON.stringify({ type: 'join_approved', roomId, wsUrl }));
   }
 

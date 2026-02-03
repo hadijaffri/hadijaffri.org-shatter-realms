@@ -223,11 +223,11 @@
             <div id="loginForm" class="auth-form active">
                 <div class="auth-input-group">
                     <label>Username</label>
-                    <input type="text" id="loginUsername" class="auth-input" placeholder="Enter username" maxlength="20" autocomplete="username">
+                    <input type="text" id="loginUsername" class="auth-input" placeholder="Enter username" maxlength="20" autocomplete="username" onkeydown="if(event.key==='Enter')submitLogin()">
                 </div>
                 <div class="auth-input-group">
                     <label>Password</label>
-                    <input type="password" id="loginPassword" class="auth-input" placeholder="Enter password" autocomplete="current-password">
+                    <input type="password" id="loginPassword" class="auth-input" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitLogin()">
                 </div>
                 <div id="loginError" class="auth-error"></div>
                 <div id="loginSpinner" class="auth-spinner"></div>
@@ -237,16 +237,16 @@
             <div id="signupForm" class="auth-form">
                 <div class="auth-input-group">
                     <label>Username</label>
-                    <input type="text" id="signupUsername" class="auth-input" placeholder="Choose a username" maxlength="20" autocomplete="username" oninput="validateUsernameRealtime()">
+                    <input type="text" id="signupUsername" class="auth-input" placeholder="Choose a username" maxlength="20" autocomplete="username" oninput="validateUsernameRealtime()" onkeydown="if(event.key==='Enter')submitSignup()">
                     <div id="usernameStatus" class="username-status"></div>
                 </div>
                 <div class="auth-input-group">
                     <label>Password</label>
-                    <input type="password" id="signupPassword" class="auth-input" placeholder="Choose a password (min 6 chars)" autocomplete="new-password">
+                    <input type="password" id="signupPassword" class="auth-input" placeholder="Choose a password (min 6 chars)" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitSignup()">
                 </div>
                 <div class="auth-input-group">
                     <label>Confirm Password</label>
-                    <input type="password" id="signupConfirmPassword" class="auth-input" placeholder="Confirm password" autocomplete="new-password">
+                    <input type="password" id="signupConfirmPassword" class="auth-input" placeholder="Confirm password" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitSignup()">
                 </div>
                 <div id="signupError" class="auth-error"></div>
                 <div id="signupSpinner" class="auth-spinner"></div>
@@ -5769,6 +5769,7 @@
             const password = document.getElementById('loginPassword').value || '';
             const errorEl = document.getElementById('loginError');
             const spinner = document.getElementById('loginSpinner');
+            const submitBtn = document.querySelector('#loginForm .auth-submit-btn');
 
             errorEl.textContent = '';
 
@@ -5778,6 +5779,7 @@
             }
 
             spinner.style.display = 'block';
+            if (submitBtn) submitBtn.disabled = true;
             connectToSocialServerForAuth('login', { username, password, deviceId });
         }
 
@@ -5787,6 +5789,7 @@
             const confirmPassword = document.getElementById('signupConfirmPassword').value || '';
             const errorEl = document.getElementById('signupError');
             const spinner = document.getElementById('signupSpinner');
+            const submitBtn = document.querySelector('#signupForm .auth-submit-btn');
 
             errorEl.textContent = '';
 
@@ -5812,6 +5815,7 @@
 
             // Validate username appropriateness before creating account
             spinner.style.display = 'block';
+            if (submitBtn) submitBtn.disabled = true;
             try {
                 const validateResp = await fetch('/api/validate-username', {
                     method: 'POST',
@@ -5821,6 +5825,7 @@
                 const validateData = await validateResp.json();
                 if (!validateData.valid) {
                     spinner.style.display = 'none';
+                    if (submitBtn) submitBtn.disabled = false;
                     errorEl.textContent = validateData.reason || 'Username is not appropriate.';
                     return;
                 }
@@ -5837,8 +5842,12 @@
         function authConnectionFailed(action, message) {
             const loginSpinner = document.getElementById('loginSpinner');
             const signupSpinner = document.getElementById('signupSpinner');
+            const loginBtn = document.querySelector('#loginForm .auth-submit-btn');
+            const signupBtn = document.querySelector('#signupForm .auth-submit-btn');
             if (loginSpinner) loginSpinner.style.display = 'none';
             if (signupSpinner) signupSpinner.style.display = 'none';
+            if (loginBtn) loginBtn.disabled = false;
+            if (signupBtn) signupBtn.disabled = false;
             if (authTimeout) { clearTimeout(authTimeout); authTimeout = null; }
 
             if (action === 'check_auth') {
@@ -5918,8 +5927,12 @@
             if (authTimeout) { clearTimeout(authTimeout); authTimeout = null; }
             const loginSpinner = document.getElementById('loginSpinner');
             const signupSpinner = document.getElementById('signupSpinner');
+            const loginBtn = document.querySelector('#loginForm .auth-submit-btn');
+            const signupBtn = document.querySelector('#signupForm .auth-submit-btn');
             if (loginSpinner) loginSpinner.style.display = 'none';
             if (signupSpinner) signupSpinner.style.display = 'none';
+            if (loginBtn) loginBtn.disabled = false;
+            if (signupBtn) signupBtn.disabled = false;
 
             if (data.type === 'auth_success') {
                 isAuthenticated = true;

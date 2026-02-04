@@ -130,7 +130,7 @@ Respond with ONLY a JSON object, no other text:
       }
     }
 
-    return res.status(200).json({ valid: true, reason: 'Username is available.' });
+    return res.status(200).json({ valid: true, reason: 'Username looks good!' });
   } catch (error) {
     console.error('Username validation error:', error);
     return res.status(500).json({ valid: false, reason: 'Validation service error.' });

@@ -259,7 +259,7 @@ export default class SocialServer implements Party.Server {
     const session: SessionData = {
       username,
       deviceId,
-      expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+      expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000, // 365 days
     };
     await this.room.storage.put(`session:${token}`, session);
 

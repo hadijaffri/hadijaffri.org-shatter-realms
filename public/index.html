@@ -382,7 +382,7 @@
                     'tDiffuse': { value: null },
                     'saturation': { value: 1.2 },
                     'contrast': { value: 1.1 },
-                    'brightness': { value: 0.05 },
+                    'brightness': { value: -0.05 },
                     'vignetteIntensity': { value: 0.2 }
                 },
                 vertexShader: `
@@ -1133,7 +1133,7 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.6;
+            renderer.toneMappingExposure = 0.8;
             renderer.outputEncoding = THREE.sRGBEncoding;
             renderer.physicallyCorrectLights = true;
             document.body.appendChild(renderer.domElement);
@@ -1142,10 +1142,10 @@
             setupPostProcessing();
             
             // Realistic lighting
-            const ambientLight = new THREE.AmbientLight(0x99aacc, 0.5);
+            const ambientLight = new THREE.AmbientLight(0x99aacc, 0.3);
             scene.add(ambientLight);
-            
-            const sunLight = new THREE.DirectionalLight(0xffffee, 1.1);
+
+            const sunLight = new THREE.DirectionalLight(0xffffee, 0.7);
             sunLight.position.set(60, 100, 40);
             sunLight.castShadow = true;
             const shadowRes = deviceMode === 'mobile' ? 1024 : 2048;

@@ -5857,6 +5857,10 @@
                 authenticatedUsername = null;
                 setCookie('authToken', '', -1);
                 setCookie('authUsername', '', -1);
+                try {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('authUsername');
+                } catch (e) { /* ignore */ }
                 showAuthModal();
             } else {
                 const errorEl = document.getElementById(action === 'login' ? 'loginError' : 'signupError');
@@ -5943,8 +5947,15 @@
                     // Update deviceId cookie if server returned one (for login with existing account)
                     setCookie('deviceId', data.deviceId);
                 }
-                setCookie('authToken', data.token, 30);
-                setCookie('authUsername', data.username, 30);
+                // Save auth for 365 days and also in localStorage as backup
+                setCookie('authToken', data.token, 365);
+                setCookie('authUsername', data.username, 365);
+                try {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('authUsername', data.username);
+                } catch (e) {
+                    console.log('localStorage not available');
+                }
 
                 // Update social data
                 myFriendCode = data.friendCode || '';
@@ -5977,6 +5988,10 @@
                 authenticatedUsername = null;
                 setCookie('authToken', '', -1);
                 setCookie('authUsername', '', -1);
+                try {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('authUsername');
+                } catch (e) { /* ignore */ }
                 showAuthModal();
             }
         }
@@ -5991,8 +6006,23 @@
         }
 
         function tryAutoLogin() {
-            const savedToken = getCookie('authToken');
-            const savedUsername = getCookie('authUsername');
+            // Try to get auth from cookies first, then localStorage as fallback
+            let savedToken = getCookie('authToken');
+            let savedUsername = getCookie('authUsername');
+
+            if (!savedToken || !savedUsername) {
+                try {
+                    savedToken = localStorage.getItem('authToken');
+                    savedUsername = localStorage.getItem('authUsername');
+                    // If found in localStorage, restore to cookies
+                    if (savedToken && savedUsername) {
+                        setCookie('authToken', savedToken, 365);
+                        setCookie('authUsername', savedUsername, 365);
+                    }
+                } catch (e) {
+                    console.log('localStorage not available');
+                }
+            }
 
             if (savedToken && savedUsername) {
                 // Try auto-login with saved token

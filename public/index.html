@@ -362,9 +362,9 @@
             // Bloom for glowing effects (subtle for realism)
             bloomPass = new THREE.UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.5,  // Strength - more glow
-                0.5,  // Radius - wider spread
-                0.7   // Threshold - more elements bloom
+                0.12, // Strength - very subtle glow
+                0.4,  // Radius
+                0.9   // Threshold - only the brightest elements bloom
             );
             composer.addPass(bloomPass);
 
@@ -380,10 +380,10 @@
             const colorCorrectionShader = {
                 uniforms: {
                     'tDiffuse': { value: null },
-                    'saturation': { value: 1.2 },
-                    'contrast': { value: 1.1 },
-                    'brightness': { value: 0.05 },
-                    'vignetteIntensity': { value: 0.2 }
+                    'saturation': { value: 1.1 },
+                    'contrast': { value: 1.05 },
+                    'brightness': { value: 0.0 },
+                    'vignetteIntensity': { value: 0.15 }
                 },
                 vertexShader: `
                     varying vec2 vUv;
@@ -1122,7 +1122,7 @@
             
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x7ec8e3);
-            scene.fog = new THREE.FogExp2(0x7ec8e3, 0.005);
+            scene.fog = new THREE.FogExp2(0x7ec8e3, 0.006);
             
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
             camera.position.copy(playerState.position);
@@ -1133,7 +1133,7 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.6;
+            renderer.toneMappingExposure = 1.2;
             renderer.outputEncoding = THREE.sRGBEncoding;
             renderer.physicallyCorrectLights = true;
             document.body.appendChild(renderer.domElement);
@@ -1143,10 +1143,10 @@
             setupPostProcessing();
 
             // Realistic lighting
-            const ambientLight = new THREE.AmbientLight(0x99aacc, 0.5);
+            const ambientLight = new THREE.AmbientLight(0x8899aa, 0.4);
             scene.add(ambientLight);
 
-            const sunLight = new THREE.DirectionalLight(0xffffee, 1.1);
+            const sunLight = new THREE.DirectionalLight(0xffeedd, 1.0);
             sunLight.position.set(60, 100, 40);
             sunLight.castShadow = true;
             const shadowRes = deviceMode === 'mobile' ? 1024 : 2048;
@@ -1161,7 +1161,7 @@
             sunLight.shadow.bias = -0.0001;
             scene.add(sunLight);
             
-            const hemiLight = new THREE.HemisphereLight(0x99ccff, 0x556633, 0.6);
+            const hemiLight = new THREE.HemisphereLight(0x88bbff, 0x445522, 0.5);
             scene.add(hemiLight);
             
             // Ground - realistic grass with hills (higher resolution)

@@ -4646,8 +4646,16 @@
                     }
                 }
 
-                // Update Y position to terrain height
-                const terrainY = getTerrainHeight(e.mesh.position.x, e.mesh.position.z);
+                // Update Y position to max terrain height around enemy (prevents sinking into hills)
+                const ex = e.mesh.position.x;
+                const ez = e.mesh.position.z;
+                const terrainY = Math.max(
+                    getTerrainHeight(ex, ez),
+                    getTerrainHeight(ex + 0.5, ez),
+                    getTerrainHeight(ex - 0.5, ez),
+                    getTerrainHeight(ex, ez + 0.5),
+                    getTerrainHeight(ex, ez - 0.5)
+                );
                 e.mesh.position.y = terrainY + 0.4;
 
                 // Face the player
@@ -4698,8 +4706,16 @@
                 isMoving = true;
             }
 
-            // Update Y position to terrain height
-            const terrainY = getTerrainHeight(boss.mesh.position.x, boss.mesh.position.z);
+            // Update Y position to max terrain height around boss (prevents sinking into hills)
+            const bx = boss.mesh.position.x;
+            const bz = boss.mesh.position.z;
+            const terrainY = Math.max(
+                getTerrainHeight(bx, bz),
+                getTerrainHeight(bx + 0.7, bz),
+                getTerrainHeight(bx - 0.7, bz),
+                getTerrainHeight(bx, bz + 0.7),
+                getTerrainHeight(bx, bz - 0.7)
+            );
             boss.mesh.position.y = terrainY + 0.45;
 
             // Face the player

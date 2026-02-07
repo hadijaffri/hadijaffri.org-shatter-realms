@@ -2485,21 +2485,27 @@
         }
 
         async function buyCoins(coinPackage) {
+            // Require authentication to purchase coins
+            if (!authenticatedUsername) {
+                alert('Please log in or create an account to purchase coins. Your coins will be saved to your account.');
+                showAuthModal();
+                return;
+            }
+
             try {
-                const userId = authenticatedUsername || deviceId;
                 const response = await fetch('/api/create-checkout-session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ coinPackage, userId })
+                    body: JSON.stringify({ coinPackage, userId: authenticatedUsername })
                 });
 
                 const data = await response.json();
 
                 if (data.url) {
-                    // Redirect to Stripe Checkout
-                    window.location.href = data.url;
+                    // Open Stripe Checkout in a new tab
+                    window.open(data.url, '_blank');
                 } else {
                     alert(data.error || 'Error creating checkout session');
                 }

@@ -168,7 +168,7 @@
             </div>
             <div style="margin-bottom: 15px;">
                 <div style="display: flex; gap: 5px;">
-                    <input type="text" id="addFriendInput" placeholder="Enter friend code (e.g. Player#1234)" style="flex: 1; padding: 8px; font-size: 12px; border: 2px solid #444; border-radius: 8px; background: #222; color: white;">
+                    <input type="text" id="addFriendInput" placeholder="Enter friend code (e.g. ABC12XYZ)" style="flex: 1; padding: 8px; font-size: 12px; border: 2px solid #444; border-radius: 8px; background: #222; color: white;">
                     <button class="menu-btn" onclick="sendFriendRequest()" style="padding: 8px 15px; font-size: 12px; background: linear-gradient(135deg, #3498db, #2980b9);">Add</button>
                 </div>
                 <div id="friendRequestStatus" style="color: #888; font-size: 11px; margin-top: 5px;"></div>
@@ -3648,21 +3648,6 @@
             return false;
         }
 
-        // Calculate terrain slope and return height + rotation to match hill angle
-        function getTerrainDataForEnemy(x, z) {
-            const sampleDist = 0.4;
-            const centerY = getTerrainHeight(x, z);
-            const frontY = getTerrainHeight(x, z + sampleDist);
-            const backY = getTerrainHeight(x, z - sampleDist);
-            const leftY = getTerrainHeight(x - sampleDist, z);
-            const rightY = getTerrainHeight(x + sampleDist, z);
-
-            // Calculate slope angles
-            const slopeX = Math.atan2(rightY - leftY, sampleDist * 2);
-            const slopeZ = Math.atan2(frontY - backY, sampleDist * 2);
-
-            return { y: centerY, rotX: slopeZ, rotZ: -slopeX };
-        }
 
         function spawnEnemy() {
             // Try to find a valid spawn position (not inside buildings)
@@ -3675,7 +3660,7 @@
                 attempts++;
             } while (isInsideBuilding(x, z) && attempts < 10);
 
-            const terrain = getTerrainDataForEnemy(x, z);
+            const terrainY = getTerrainHeight(x, z);
 
             // Pick random enemy type
             const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
@@ -4159,9 +4144,7 @@
             // Apply type-specific scale
             enemyGroup.scale.setScalar(type.scale);
 
-            enemyGroup.position.set(x, terrain.y + 0.4, z);
-            enemyGroup.rotation.x = terrain.rotX * 0.5;
-            enemyGroup.rotation.z = terrain.rotZ * 0.5;
+            enemyGroup.position.set(x, terrainY + 0.4, z);
             scene.add(enemyGroup);
 
             const baseHealth = 30 * (1 + currentWave * 0.08);
@@ -4195,8 +4178,8 @@
                 attempts++;
             } while (isInsideBuilding(x, z, 3) && attempts < 10);
 
-            const terrain = getTerrainDataForEnemy(x, z);
-            
+            const terrainY = getTerrainHeight(x, z);
+
             // Create boss group
             const bossGroup = new THREE.Group();
             
@@ -4275,9 +4258,7 @@
             rightLeg.position.set(0.3, 0.45, 0);
             bossGroup.add(rightLeg);
             
-            bossGroup.position.set(x, terrain.y + 0.45, z);
-            bossGroup.rotation.x = terrain.rotX * 0.5;
-            bossGroup.rotation.z = terrain.rotZ * 0.5;
+            bossGroup.position.set(x, terrainY + 0.45, z);
             scene.add(bossGroup);
             
             boss = {
@@ -4628,12 +4609,6 @@
                 toPlayer.y = 0;
                 const dist = toPlayer.length();
                 toPlayer.normalize();
-                
-                // Calculate facing direction to player
-                const facingAngle = Math.atan2(
-                    playerState.position.x - e.mesh.position.x,
-                    playerState.position.z - e.mesh.position.z
-                );
 
                 let isMoving = false;
 
@@ -4671,10 +4646,12 @@
                     }
                 }
 
-                // Update position and rotation to match terrain slope while facing player
-                const terrain = getTerrainDataForEnemy(e.mesh.position.x, e.mesh.position.z);
-                e.mesh.position.y = terrain.y + 0.4;
-                e.mesh.rotation.set(terrain.rotX * 0.5, facingAngle, terrain.rotZ * 0.5);
+                // Update Y position to terrain height
+                const terrainY = getTerrainHeight(e.mesh.position.x, e.mesh.position.z);
+                e.mesh.position.y = terrainY + 0.4;
+
+                // Face the player
+                e.mesh.lookAt(new THREE.Vector3(playerState.position.x, e.mesh.position.y, playerState.position.z));
                 
                 // Animate arms and legs while moving
                 if (isMoving && e.leftArm && e.rightArm && e.leftLeg && e.rightLeg) {
@@ -4712,12 +4689,6 @@
             toPlayer.y = 0;
             const dist = toPlayer.length();
             toPlayer.normalize();
-            
-            // Calculate facing direction to player
-            const facingAngle = Math.atan2(
-                playerState.position.x - boss.mesh.position.x,
-                playerState.position.z - boss.mesh.position.z
-            );
 
             let isMoving = false;
 
@@ -4727,10 +4698,12 @@
                 isMoving = true;
             }
 
-            // Update position and rotation to match terrain slope while facing player
-            const terrain = getTerrainDataForEnemy(boss.mesh.position.x, boss.mesh.position.z);
-            boss.mesh.position.y = terrain.y + 0.45;
-            boss.mesh.rotation.set(terrain.rotX * 0.5, facingAngle, terrain.rotZ * 0.5);
+            // Update Y position to terrain height
+            const terrainY = getTerrainHeight(boss.mesh.position.x, boss.mesh.position.z);
+            boss.mesh.position.y = terrainY + 0.45;
+
+            // Face the player
+            boss.mesh.lookAt(new THREE.Vector3(playerState.position.x, boss.mesh.position.y, playerState.position.z));
             
             // Animate arms and legs
             if (isMoving && boss.leftArm && boss.rightArm && boss.leftLeg && boss.rightLeg) {

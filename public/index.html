@@ -4629,24 +4629,28 @@
                 const dist = toPlayer.length();
                 toPlayer.normalize();
                 
-                e.mesh.lookAt(new THREE.Vector3(playerState.position.x, e.mesh.position.y, playerState.position.z));
-                
+                // Calculate facing direction to player
+                const facingAngle = Math.atan2(
+                    playerState.position.x - e.mesh.position.x,
+                    playerState.position.z - e.mesh.position.z
+                );
+
                 let isMoving = false;
-                
+
                 if (dist > 1.3) {
                     // Calculate new position
                     let newX = e.mesh.position.x + toPlayer.x * e.speed * dt;
                     let newZ = e.mesh.position.z + toPlayer.z * e.speed * dt;
-                    
+
                     // Check collision with other enemies
                     let canMove = true;
                     enemies.forEach((other, otherIdx) => {
                         if (idx === otherIdx || !other.mesh) return;
-                        
+
                         const dx = newX - other.mesh.position.x;
                         const dz = newZ - other.mesh.position.z;
                         const distToOther = Math.sqrt(dx * dx + dz * dz);
-                        
+
                         // If too close to another enemy, push apart
                         if (distToOther < 1.0) {
                             canMove = false;
@@ -4659,19 +4663,18 @@
                             }
                         }
                     });
-                    
+
                     if (canMove) {
                         e.mesh.position.x = newX;
                         e.mesh.position.z = newZ;
                         isMoving = true;
                     }
                 }
-                
-                // Update position and rotation to match terrain slope
+
+                // Update position and rotation to match terrain slope while facing player
                 const terrain = getTerrainDataForEnemy(e.mesh.position.x, e.mesh.position.z);
                 e.mesh.position.y = terrain.y + 0.4;
-                e.mesh.rotation.x = terrain.rotX * 0.5;
-                e.mesh.rotation.z = terrain.rotZ * 0.5;
+                e.mesh.rotation.set(terrain.rotX * 0.5, facingAngle, terrain.rotZ * 0.5);
                 
                 // Animate arms and legs while moving
                 if (isMoving && e.leftArm && e.rightArm && e.leftLeg && e.rightLeg) {
@@ -4710,21 +4713,24 @@
             const dist = toPlayer.length();
             toPlayer.normalize();
             
-            boss.mesh.lookAt(new THREE.Vector3(playerState.position.x, boss.mesh.position.y, playerState.position.z));
-            
+            // Calculate facing direction to player
+            const facingAngle = Math.atan2(
+                playerState.position.x - boss.mesh.position.x,
+                playerState.position.z - boss.mesh.position.z
+            );
+
             let isMoving = false;
-            
+
             if (dist > 2) {
                 boss.mesh.position.x += toPlayer.x * boss.speed * dt;
                 boss.mesh.position.z += toPlayer.z * boss.speed * dt;
                 isMoving = true;
             }
-            
-            // Update position and rotation to match terrain slope
+
+            // Update position and rotation to match terrain slope while facing player
             const terrain = getTerrainDataForEnemy(boss.mesh.position.x, boss.mesh.position.z);
             boss.mesh.position.y = terrain.y + 0.45;
-            boss.mesh.rotation.x = terrain.rotX * 0.5;
-            boss.mesh.rotation.z = terrain.rotZ * 0.5;
+            boss.mesh.rotation.set(terrain.rotX * 0.5, facingAngle, terrain.rotZ * 0.5);
             
             // Animate arms and legs
             if (isMoving && boss.leftArm && boss.rightArm && boss.leftLeg && boss.rightLeg) {

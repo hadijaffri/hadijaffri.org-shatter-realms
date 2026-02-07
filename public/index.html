@@ -3648,15 +3648,20 @@
             return false;
         }
 
-        // Get terrain height sampling multiple points to prevent clipping into hills
-        function getTerrainHeightForEnemy(x, z) {
-            return Math.max(
-                getTerrainHeight(x, z),
-                getTerrainHeight(x + 0.5, z),
-                getTerrainHeight(x - 0.5, z),
-                getTerrainHeight(x, z + 0.5),
-                getTerrainHeight(x, z - 0.5)
-            );
+        // Calculate terrain slope and return height + rotation to match hill angle
+        function getTerrainDataForEnemy(x, z) {
+            const sampleDist = 0.4;
+            const centerY = getTerrainHeight(x, z);
+            const frontY = getTerrainHeight(x, z + sampleDist);
+            const backY = getTerrainHeight(x, z - sampleDist);
+            const leftY = getTerrainHeight(x - sampleDist, z);
+            const rightY = getTerrainHeight(x + sampleDist, z);
+
+            // Calculate slope angles
+            const slopeX = Math.atan2(rightY - leftY, sampleDist * 2);
+            const slopeZ = Math.atan2(frontY - backY, sampleDist * 2);
+
+            return { y: centerY, rotX: slopeZ, rotZ: -slopeX };
         }
 
         function spawnEnemy() {
@@ -3670,7 +3675,7 @@
                 attempts++;
             } while (isInsideBuilding(x, z) && attempts < 10);
 
-            const terrainY = getTerrainHeightForEnemy(x, z);
+            const terrain = getTerrainDataForEnemy(x, z);
 
             // Pick random enemy type
             const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
@@ -4154,7 +4159,9 @@
             // Apply type-specific scale
             enemyGroup.scale.setScalar(type.scale);
 
-            enemyGroup.position.set(x, terrainY + 0.4, z);
+            enemyGroup.position.set(x, terrain.y + 0.4, z);
+            enemyGroup.rotation.x = terrain.rotX * 0.5;
+            enemyGroup.rotation.z = terrain.rotZ * 0.5;
             scene.add(enemyGroup);
 
             const baseHealth = 30 * (1 + currentWave * 0.08);
@@ -4188,7 +4195,7 @@
                 attempts++;
             } while (isInsideBuilding(x, z, 3) && attempts < 10);
 
-            const terrainY = getTerrainHeightForEnemy(x, z);
+            const terrain = getTerrainDataForEnemy(x, z);
             
             // Create boss group
             const bossGroup = new THREE.Group();
@@ -4268,7 +4275,9 @@
             rightLeg.position.set(0.3, 0.45, 0);
             bossGroup.add(rightLeg);
             
-            bossGroup.position.set(x, terrainY + 0.45, z);
+            bossGroup.position.set(x, terrain.y + 0.45, z);
+            bossGroup.rotation.x = terrain.rotX * 0.5;
+            bossGroup.rotation.z = terrain.rotZ * 0.5;
             scene.add(bossGroup);
             
             boss = {
@@ -4658,9 +4667,11 @@
                     }
                 }
                 
-                // Update Y position to terrain height (sample multiple points to prevent clipping into hills)
-                const terrainY = getTerrainHeightForEnemy(e.mesh.position.x, e.mesh.position.z);
-                e.mesh.position.y = terrainY + 0.4;
+                // Update position and rotation to match terrain slope
+                const terrain = getTerrainDataForEnemy(e.mesh.position.x, e.mesh.position.z);
+                e.mesh.position.y = terrain.y + 0.4;
+                e.mesh.rotation.x = terrain.rotX * 0.5;
+                e.mesh.rotation.z = terrain.rotZ * 0.5;
                 
                 // Animate arms and legs while moving
                 if (isMoving && e.leftArm && e.rightArm && e.leftLeg && e.rightLeg) {
@@ -4709,9 +4720,11 @@
                 isMoving = true;
             }
             
-            // Update Y position to terrain height (sample multiple points to prevent clipping into hills)
-            const terrainY = getTerrainHeightForEnemy(boss.mesh.position.x, boss.mesh.position.z);
-            boss.mesh.position.y = terrainY + 0.45;
+            // Update position and rotation to match terrain slope
+            const terrain = getTerrainDataForEnemy(boss.mesh.position.x, boss.mesh.position.z);
+            boss.mesh.position.y = terrain.y + 0.45;
+            boss.mesh.rotation.x = terrain.rotX * 0.5;
+            boss.mesh.rotation.z = terrain.rotZ * 0.5;
             
             // Animate arms and legs
             if (isMoving && boss.leftArm && boss.rightArm && boss.leftLeg && boss.rightLeg) {

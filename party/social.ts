@@ -413,9 +413,13 @@ export default class SocialServer implements Party.Server {
     await this.room.storage.put(`player:${data.deviceId}`, data);
   }
 
-  generateFriendCode(username: string): string {
-    const num = Math.floor(1000 + Math.random() * 9000);
-    return `${username}#${num}`;
+  generateFriendCode(_username: string): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
   }
 
   async handleRegister(conn: Party.Connection, data: { deviceId: string; username: string }) {
